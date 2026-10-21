@@ -314,6 +314,8 @@
   .cover.brick { background: #060a12; }
   /* 달리는 유령 표지: 할로윈 밤 흙길에서 뛰어오른 보자기 유령과 굴러오는 잭오랜턴 */
   .cover.runner { background: #120c24; }
+  /* 신사 여우 표지: 사용자가 준 밤 신사 그림 위에서 여우가 다루마를 뛰어넘는 장면(사용자 그림으로 합성한 fox/img/cover.webp) */
+  .cover.fox { background: #14123a; }
   .game-title {
     display: flex; align-items: center; gap: .5rem;
     padding: .7rem .9rem .8rem;
@@ -619,6 +621,10 @@
             </svg>
           </div>
           <div class="game-title">달리는 유령</div>
+        </a>
+        <a class="game" href="fox/index.html">
+          <div class="cover fox"><img src="fox/img/cover.webp" alt="밤 신사 돌길에서 다루마를 뛰어넘는 흰 여우" loading="lazy"></div>
+          <div class="game-title">신사 여우</div>
         </a>
       </div>
     </section>
