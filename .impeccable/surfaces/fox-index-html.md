@@ -5,7 +5,7 @@ primary_target: "fox/index.html"
 related_targets: []
 ---
 
-# 신사 여우: 가로 러너 장면 (fox/index.html)
+# 팍스런: 가로 러너 장면 (fox/index.html)
 
 Scope: 가로 무한러너 한 화면. 첫 단계는 화면, HUD, 흐르는 배경, 달리는 여우, 점프까지. Mode: Experience.
 Audience/job: 공유 링크로 온 친구가 PC나 가로로 돌린 폰에서 흰 여우를 밤 신사 돌길 위로 달리게 한다(스페이스나 화면 톡으로 점프).
@@ -23,5 +23,5 @@ THESIS: 사용자가 준 밤 신사 파노라마(도리이, 석등, 벚꽃, 폭�
 OWN-WORLD: 그림의 남보랏빛 밤(#1b1a4a 계열), 벚꽃 분홍 #f3a6d6, 도리이 주홍 #d8452e, 석등 불빛 #ffd27a. HUD는 흰 둥근 점수 상자(잉크 #231b4d), 진홍 하트(#e8434f, 짙은 테두리), 별이 박힌 금빛 동전, 주홍 옻칠 동그란 시작 버튼에 금빛 테. 숫자는 Jua.
 STORY: 들어오면 돌길 위에 흰 여우가 뛰어오르는 자세로 있고, 주홍 버튼을 누르면 신사 풍경이 왼쪽으로 흐르며 여우가 달린다. 톡이나 스페이스로 뛴다.
 FIRST VIEWPORT: 가로 틀(16:9~2.2:1, 그보다 좁거나 넓은 창은 위아래나 양옆을 짙은 남색으로 비움) 하나가 장면. 배경 그림은 틀 높이에 맞춰 깔고, 돌길(그림 높이 74~76%) 위에 여우가 왼쪽 8% 자리에서 틀 높이 24% 크기로 선다. 왼쪽 위 하트 4개, 그 아래 동전과 × 개수, 가운데 위 흰 점수 상자, 오른쪽 위 주홍 시작 버튼. 폰을 세로로 들면 가로로 돌리라는 그림 안내만 덮는다.
-FORM: 사용자 지정 방향(seed 없음, 사용자 지정이 roll보다 우선). 구조 레퍼런스는 이 프로젝트의 달리는 유령.
+FORM: 사용자 지정 방향(seed 없음, 사용자 지정이 roll보다 우선). 구조 레퍼런스는 이 프로젝트의 고스트점핑.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

@@ -5,7 +5,7 @@ primary_target: "runner/index.html"
 related_targets: []
 ---
 
-# 달리는 유령: 러너 장면 (runner/index.html)
+# 고스트점핑: 러너 장면 (runner/index.html)
 
 Scope: 무한러너 한 화면(달리기, 점프, 적, 사탕 보호막, 게임 오버, 배경음까지). Mode: Experience.
 Audience/job: 공유 링크로 온 친구가 폰이나 PC에서 보자기 유령을 달리게 한다(스페이스나 화면 톡으로 점프).

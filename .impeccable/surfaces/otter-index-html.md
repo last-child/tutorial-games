@@ -5,9 +5,9 @@ primary_target: "otter/index.html"
 related_targets: ["otter/img"]
 ---
 
-# 해달 쓰다듬기 (otter/index.html)
+# 수달 쓰다듬기 (otter/index.html)
 
-Scope: 1인용 해달 쓰다듬기. 해달이 한 번에 한 마리씩 떠올랐다 들어간다. 해달을 터치하면 쓰다듬어져 1점을 얻는다. Mode: Experience — 바다와 해달 자리 9곳이 첫 화면의 주인공.
+Scope: 1인용 수달 쓰다듬기. 해달이 한 번에 한 마리씩 떠올랐다 들어간다. 해달을 터치하면 쓰다듬어져 1점을 얻는다. Mode: Experience — 바다와 해달 자리 9곳이 첫 화면의 주인공.
 Audience/job: 공유 링크로 온 친구가 폰이나 PC에서 "게임 시작"을 누르고 30초 동안 떠오르는 해달을 쓰다듬는다.
 Constraints: file://로 열림, 단일 HTML. 틀 바깥 여백은 hooni-hue 테마. 군더더기 문구 없음. 냥토 연출·코드를 가져다 쓰지 않는다. 탄약 한정 없음, 함정 없음(사용자 결정).
 History:
