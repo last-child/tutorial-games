@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "bounce-easing",
+        "value": "cubic-bezier(.2, 1.4, .4, 1)",
+        "createdAt": "2026-10-21T06:15:23.134Z",
+        "reason": "Claude: game-over card pop-in in homepage/fox is a deliberate toy-like overshoot, same as the runner game's card"
+      }
+    ]
+  }
+}

@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>♡ 후니의 미니홈피 ♡</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: '돋움', Dotum, 'Nanum Gothic', '굴림', Gulim, sans-serif;
+      font-size: 13px;
+      color: #555;
+      min-height: 100vh;
+      padding: 30px 16px;
+      background-color: #e6eef3;
+      background-image: radial-gradient(#c5d6e2 1px, transparent 1px);
+      background-size: 8px 8px;
+    }
+
+    /* 맨 위 투데이/토탈 + BGM */
+    .topbar {
+      max-width: 920px;
+      margin: 0 auto 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .counter { font-size: 12px; color: #6b8396; letter-spacing: 1px; }
+    .counter b { color: #ff6600; }
+    .counter a { color: #2b6ea3; margin-left: 10px; letter-spacing: 0; }
+
+    .bgm {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1px solid #b9cbd8;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 12px;
+      max-width: 100%;
+    }
+
+    .bgm button {
+      border: 1px solid #b9cbd8;
+      background: linear-gradient(#fff, #e8eff4);
+      border-radius: 3px;
+      width: 24px;
+      height: 20px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .bgm .marquee {
+      width: 190px;
+      overflow: hidden;
+      white-space: nowrap;
+      color: #ff6600;
+    }
+
+    .bgm .marquee span {
+      display: inline-block;
+      padding-left: 100%;
+      animation: marquee 9s linear infinite;
+    }
+
+    .bgm.paused .marquee span { animation-play-state: paused; color: #aaa; }
+
+    @keyframes marquee {
+      to { transform: translateX(-100%); }
+    }
+
+    .eq { display: flex; gap: 2px; align-items: flex-end; height: 14px; }
+    .eq i {
+      width: 3px;
+      background: #ff9933;
+      animation: eq 0.8s ease-in-out infinite alternate;
+    }
+    .eq i:nth-child(2) { animation-delay: 0.2s; }
+    .eq i:nth-child(3) { animation-delay: 0.4s; }
+    .eq i:nth-child(4) { animation-delay: 0.1s; }
+    .bgm.paused .eq i { animation-play-state: paused; }
+
+    @keyframes eq {
+      from { height: 3px; }
+      to   { height: 14px; }
+    }
+
+    /* 미니홈피 바깥 프레임 */
+    .frame {
+      max-width: 920px;
+      margin: 0 auto;
+      position: relative;
+      background: #7fa7c4;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 4px 0 #5e86a3, 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .book {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 14px;
+      background: #fff;
+      border: 2px dashed #a9c4d8;
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .panel {
+      border: 1px solid #c8d8e4;
+      border-radius: 6px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    /* 왼쪽 프로필 */
+    .profile { display: flex; flex-direction: column; gap: 10px; }
+
+    .photo {
+      aspect-ratio: 1;
+      border: 1px solid #c8d8e4;
+      background: linear-gradient(135deg, #fff0f6, #e8f4ff);
+      display: grid;
+      place-items: center;
+      font-size: 80px;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+
+    .photo small {
+      position: absolute;
+      bottom: 6px;
+      right: 8px;
+      font-size: 11px;
+      color: #aab;
+    }
+
+    .mood {
+      font-size: 12px;
+      color: #888;
+      border-bottom: 1px dotted #ccc;
+      padding-bottom: 8px;
+    }
+
+    .mood b { color: #ff6600; }
+
+    .intro {
+      font-family: 'Nanum Pen Script', cursive;
+      font-size: 20px;
+      line-height: 1.35;
+      color: #555;
+      min-height: 120px;
+    }
+
+    .who {
+      border-top: 1px dotted #ccc;
+      padding-top: 8px;
+      font-size: 12px;
+    }
+
+    .who b { color: #2b6ea3; }
+
+    .btn-row { display: flex; gap: 6px; }
+    .btn-row .btn { flex: 1; }
+
+    select {
+      width: 100%;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 3px;
+      border: 1px solid #b9cbd8;
+      color: #555;
+    }
+
+    /* 오른쪽 메인 */
+    .main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+    .title {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 2px solid #7fa7c4;
+      padding-bottom: 6px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .title h1 {
+      font-size: 17px;
+      color: #2b6ea3;
+      letter-spacing: -0.5px;
+    }
+
+    .title span { font-size: 11px; color: #999; }
+
+    .box-head {
+      font-size: 12px;
+      font-weight: bold;
+      color: #2b6ea3;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .box-head em { font-style: normal; font-weight: normal; color: #ff6600; }
+
+    .news {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .news ul { list-style: none; }
+    .news li {
+      padding: 3px 0;
+      border-bottom: 1px dotted #ddd;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .news li .new { color: #ff3300; font-size: 10px; font-weight: bold; }
+
+    .stat { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-size: 12px; }
+    .stat b { color: #ff6600; }
+
+    /* 취미 카드 3개 */
+    .hobby-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .hobby-card {
+      background: var(--c1);
+      border: 2px dashed var(--c2);
+      border-radius: 10px;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.2s;
+    }
+
+    .hobby-card:hover { transform: translateY(-4px) rotate(-2deg); }
+
+    .hobby-card .icon {
+      font-size: 40px;
+      transition: transform 0.4s;
+    }
+
+    .hobby-card:hover .icon { transform: rotate(360deg); }
+
+    .hobby-card h3 {
+      font-size: 14px;
+      color: var(--c2);
+      margin: 6px 0 4px;
+      filter: brightness(0.8);
+    }
+
+    .hobby-card p { font-size: 11px; line-height: 1.5; color: #666; }
+
+    /* 미니룸 */
+    .room {
+      position: relative;
+      height: 210px;
+      border: 1px solid #c8d8e4;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, #fde7ef 0%, #fde7ef 62%, transparent 62%),
+        repeating-linear-gradient(90deg, #e6c39a 0 30px, #d9b386 30px 32px);
+    }
+
+    .room .window {
+      position: absolute;
+      top: 18px;
+      left: 24px;
+      width: 70px;
+      height: 56px;
+      background: linear-gradient(#9fd3ff, #d8f0ff);
+      border: 4px solid #fff;
+      box-shadow: 0 0 0 1px #d4a5b8;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+    }
+
+    .room .item {
+      position: absolute;
+      font-size: 36px;
+      user-select: none;
+      transition: transform 0.2s;
+    }
+
+    .room .item[data-say] { cursor: pointer; }
+    .room .item:hover { transform: scale(1.15); }
+
+    .minime {
+      position: absolute;
+      bottom: 22px;
+      left: 46%;
+      font-size: 44px;
+      cursor: pointer;
+      transition: left 0.6s ease;
+      animation: hop 1.2s ease-in-out infinite;
+    }
+
+    @keyframes hop {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+
+    .bubble {
+      position: absolute;
+      bottom: 80px;
+      left: 46%;
+      transform: translateX(-20%);
+      background: #fff;
+      border: 1px solid #c8d8e4;
+      border-radius: 10px;
+      padding: 4px 8px;
+      font-size: 12px;
+      white-space: nowrap;
+      transition: left 0.6s ease;
+    }
+
+    /* 일촌평 / 방명록 */
+    .comments { list-style: none; }
+    .comments li {
+      padding: 6px 0;
+      border-bottom: 1px dotted #ddd;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .comments li b { color: #2b6ea3; }
+    .comments li .rel { color: #999; font-size: 11px; }
+
+    .write {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .write input {
+      flex: 1;
+      min-width: 0;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 5px;
+      border: 1px solid #b9cbd8;
+    }
+
+    .btn {
+      font-family: inherit;
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid #b9cbd8;
+      background: linear-gradient(#fff, #e8eff4);
+      color: #555;
+      border-radius: 3px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn:hover { background: #fff3e6; border-color: #ff9933; }
+
+    /* 다이어리, 사진첩 */
+    .diary-entry { padding: 10px 0; border-bottom: 1px dotted #ddd; }
+    .diary-entry .date { color: #ff6600; font-size: 11px; }
+    .diary-entry h3 { font-size: 13px; color: #2b6ea3; margin: 4px 0; }
+    .diary-entry p {
+      font-family: 'Nanum Pen Script', cursive;
+      font-size: 19px;
+      line-height: 1.4;
+    }
+
+    .album {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    .polaroid {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 8px 8px 6px;
+      box-shadow: 2px 2px 0 #eee;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .polaroid .pic {
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      font-size: 48px;
+      margin-bottom: 6px;
+    }
+
+    .tab-page { display: none; }
+    .tab-page.active { display: flex; flex-direction: column; gap: 12px; }
+
+    /* 오른쪽 메뉴 탭 */
+    .tabs {
+      position: absolute;
+      top: 50px;
+      right: -66px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .tabs button {
+      font-family: inherit;
+      width: 66px;
+      padding: 8px 0;
+      font-size: 12px;
+      border: none;
+      border-radius: 0 6px 6px 0;
+      background: #5e86a3;
+      color: #fff;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .tabs button:hover { background: #4a7290; }
+    .tabs button.active { background: #ff9933; font-weight: bold; }
+
+    /* 하트 뿅뿅 */
+    .heart {
+      position: fixed;
+      pointer-events: none;
+      font-size: 18px;
+      z-index: 99;
+      animation: heartUp 1.2s ease-out forwards;
+    }
+
+    @keyframes heartUp {
+      to { transform: translate(var(--dx), -90px); opacity: 0; }
+    }
+
+    footer {
+      max-width: 920px;
+      margin: 12px auto 0;
+      text-align: center;
+      font-size: 11px;
+      color: #8aa0b0;
+    }
+
+    @media (max-width: 1080px) {
+      .frame { display: flex; flex-direction: column; }
+      .tabs {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      .tabs button { border-radius: 6px 6px 0 0; flex: 1; min-width: 60px; width: auto; }
+    }
+
+    @media (max-width: 680px) {
+      .book { grid-template-columns: 1fr; }
+      .news { grid-template-columns: 1fr; }
+      .photo { max-width: 200px; width: 100%; margin: 0 auto; }
+      .intro { min-height: 0; }
+    }
+
+    @media (max-width: 480px) {
+      .hobby-cards { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="counter">TODAY <b id="today">27</b> | TOTAL <b>2,004</b> <a href="hooni-lab.html">✦ HOONI LAB 가기</a></div>
+    <div class="bgm" id="bgm">
+      <div class="eq"><i></i><i></i><i></i><i></i></div>
+      <div class="marquee"><span>♬ 지금 흐르는 곡 ~ 후니의 테마송 ☆ 오늘도 화이팅 ♪</span></div>
+      <button id="bgmBtn" title="재생/일시정지">❚❚</button>
+    </div>
+  </div>
+
+  <div class="frame">
+    <nav class="tabs" id="tabs">
+      <button class="active" data-tab="home">홈</button>
+      <button data-tab="profile">프로필</button>
+      <button data-tab="diary">다이어리</button>
+      <button data-tab="album">사진첩</button>
+      <button data-tab="guest">방명록</button>
+    </nav>
+
+    <div class="book">
+      <!-- 왼쪽: 프로필 -->
+      <aside class="panel profile">
+        <div class="mood">TODAY IS.. <b id="moodText">😆 신남</b></div>
+        <div class="photo" id="photo" title="클릭해 보세요 ♡"><span id="face">😎</span><small>♡ click</small></div>
+        <p class="intro">
+          *.。.:*☆ 후니의 공간에<br />
+          오신 걸 환영해요 ☆*:.。.*<br /><br />
+          게임 🎮 야구 ⚾ 여행 ✈️<br />
+          이 세 가지면 행복해 ㅎㅎ<br />
+          일촌 신청 언제나 환영 ♡
+        </p>
+        <div class="who">
+          <b>후니</b> ✨<br />
+          <span style="color:#999">☆ 후니의 미니홈피 ☆</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn" id="helloBtn">👋 인사하기</button>
+          <button class="btn" id="ilchonBtn">🤝 일촌 신청</button>
+        </div>
+        <select aria-label="파도타기">
+          <option>🌊 파도타기 ~</option>
+          <option>⚾ 야구 동호회 클럽</option>
+          <option>🎮 게임 길드 친구들</option>
+          <option>✈️ 여행 메이트</option>
+        </select>
+      </aside>
+
+      <!-- 오른쪽: 메인 -->
+      <div class="main">
+        <div class="title">
+          <h1>♡ 후니의 미니홈피 ♡ ~ 놀러와 ~</h1>
+          <span>since 2006 ★</span>
+        </div>
+
+        <!-- 홈 -->
+        <div class="tab-page active" data-page="home">
+          <div class="news">
+            <div class="panel">
+              <div class="box-head">Updated news <em>♪</em></div>
+              <ul>
+                <li><span class="new">N</span> [다이어리] 오늘 직관 승리 ⚾🎉</li>
+                <li><span class="new">N</span> [사진첩] 제주도 여행 🏝️</li>
+                <li>[방명록] 퍼가요~♡ 🙏</li>
+                <li>[다이어리] 새 게임 엔딩 봤다 🎮</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <div class="box-head">My Status</div>
+              <div class="stat">
+                <span>📔 다이어리 <b>3</b></span>
+                <span>📷 사진첩 <b>6</b></span>
+                <span>📝 방명록 <b id="guestCount">3</b></span>
+                <span>🌰 도토리 <b id="acorn">7</b></span>
+                <span>🤝 일촌 <b id="ilchon">25</b></span>
+                <span>💌 쪽지 <b>1</b></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="box-head">My Hobby ♡ <em>카드를 눌러봐 ~</em></div>
+            <div class="hobby-cards">
+              <div class="hobby-card" style="--c1:#ffe3ef; --c2:#ff8fb8">
+                <div class="icon">🎮</div>
+                <h3>게임</h3>
+                <p>새 게임 나오면<br />밤새는 건 기본 ㅋㅋ 🌙</p>
+              </div>
+              <div class="hobby-card" style="--c1:#e3f7e8; --c2:#5cc98a">
+                <div class="icon">⚾</div>
+                <h3>야구</h3>
+                <p>직관 가서 응원가 부르면<br />스트레스 날아감 📣🏟️</p>
+              </div>
+              <div class="hobby-card" style="--c1:#e3f0ff; --c2:#6aaef0">
+                <div class="icon">✈️</div>
+                <h3>여행</h3>
+                <p>낯선 곳에서 맛있는 거<br />먹는 게 최고 🗺️🍜</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="box-head">Mini Room <em>미니미랑 물건을 눌러봐 ♡</em></div>
+            <div class="room" id="room">
+              <div class="window">🌙</div>
+              <div class="item" style="top:26px; right:30px; font-size:30px">🖼️</div>
+              <div class="item" style="bottom:30px; left:18px">🛋️</div>
+              <div class="item" style="bottom:40px; right:120px" data-say="오늘 한판 ㄱ? 🎮">🖥️</div>
+              <div class="item" style="bottom:22px; right:70px; font-size:28px" data-say="홈런~!! ⚾">⚾</div>
+              <div class="item" style="bottom:24px; right:18px" data-say="다음 여행지는 어디로? ✈️">🧳</div>
+              <div class="item" style="top:30px; left:46%; font-size:26px">🎐</div>
+              <div class="minime" id="minime">🧍</div>
+              <div class="bubble" id="bubble">안뇽~ ㅎㅎ 👋</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="box-head">일촌평 <em>What friends say</em></div>
+            <ul class="comments">
+              <li>⚾ 야구 같이 보면 제일 재밌는 친구 ㅋㅋ <span class="rel">(야구메이트 · 민수)</span></li>
+              <li>🎮 게임할 때 진짜 든든함 ♡ <span class="rel">(길드원 · 지은)</span></li>
+              <li>✈️ 여행 계획 짜는 천재 ☆ <span class="rel">(여행메이트 · 준호)</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 프로필 -->
+        <div class="tab-page" data-page="profile">
+          <div class="panel">
+            <div class="box-head">About me ☆</div>
+            <p style="line-height:1.9">
+              🙋 이름 : 후니<br />
+              💖 취미 : 게임 🎮 · 야구 ⚾ · 여행 ✈️<br />
+              🌟 꿈 : 세계 곳곳의 야구장 다 가보기 🌏
+            </p>
+          </div>
+          <div class="panel">
+            <div class="box-head">좋아하는 것 ♡</div>
+            <p style="line-height:2">🍕 피자 · 🐶 강아지 · 🌙 밤하늘 · 🍦 아이스크림 · 🎬 영화 · 🌈 무지개 · 📚 만화책</p>
+          </div>
+        </div>
+
+        <!-- 다이어리 -->
+        <div class="tab-page" data-page="diary">
+          <div class="panel">
+            <div class="box-head">Diary 📔</div>
+            <div class="diary-entry">
+              <div class="date">2006.10.06 (금) 맑음 ☀️</div>
+              <h3>직관 승리 ⚾🎉</h3>
+              <p>9회말 역전 홈런!!! 목 다 쉬었다 ㅋㅋㅋ 오늘은 평생 못 잊을 듯 ♡</p>
+            </div>
+            <div class="diary-entry">
+              <div class="date">2006.09.28 (목) 비 🌧️</div>
+              <h3>비 오는 날엔 게임이지 🎮</h3>
+              <p>밖에 비 오고... 라면 끓여놓고 게임 엔딩 봤다. 이게 행복이지 ㅠㅠ</p>
+            </div>
+            <div class="diary-entry">
+              <div class="date">2006.09.15 (금) 구름 ⛅</div>
+              <h3>다음 여행 계획 ✈️</h3>
+              <p>다음엔 어디 갈까~ 바다 보러 가고 싶다 🌊 *.。.:*☆</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 사진첩 -->
+        <div class="tab-page" data-page="album">
+          <div class="panel">
+            <div class="box-head">Photo Album 📷</div>
+            <div class="album">
+              <div class="polaroid"><div class="pic" style="background:#e0f2ff">🏝️</div>제주도 바다 ♡</div>
+              <div class="polaroid"><div class="pic" style="background:#e8ffe8">🏟️</div>야구장 직관 ⚾</div>
+              <div class="polaroid"><div class="pic" style="background:#f3e8ff">🎮</div>밤샘 게임 ㅋㅋ</div>
+              <div class="polaroid"><div class="pic" style="background:#fff3e0">🗼</div>여행 가고 싶다..</div>
+              <div class="polaroid"><div class="pic" style="background:#ffe8f0">🍜</div>여행지 맛집 😋</div>
+              <div class="polaroid"><div class="pic" style="background:#fffbe0">🌅</div>노을 감성 ☆</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 방명록 -->
+        <div class="tab-page" data-page="guest">
+          <div class="panel">
+            <div class="box-head">Guest Book 📝 <em>한 마디 남겨줘 ♡</em></div>
+            <ul class="comments" id="guestList">
+              <li><b>민수</b> : 후니야 다음 직관 언제 가?? ⚾ <span class="rel">2006.10.05</span></li>
+              <li><b>지은</b> : 오늘 밤 레이드 ㄱㄱ 🎮 <span class="rel">2006.10.03</span></li>
+              <li><b>준호</b> : 퍼가요~♡ 🙏 <span class="rel">2006.10.01</span></li>
+            </ul>
+            <form class="write" id="guestForm">
+              <input id="guestName" placeholder="이름" style="flex:0 0 70px" maxlength="10" />
+              <input id="guestMsg" placeholder="방명록을 남겨주세요 ~ ♡" maxlength="60" />
+              <button class="btn" type="submit">확인</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Copyright ⓒ 후니 All rights reserved. ☆ 퍼가실 땐 말씀해 주세요 ♡</footer>
+
+  <script>
+    const rand = (min, max) => Math.random() * (max - min) + min;
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    // 하트 뿅뿅
+    function hearts(x, y, count = 6) {
+      for (let i = 0; i < count; i++) {
+        const h = document.createElement('div');
+        h.className = 'heart';
+        h.textContent = pick(['♡', '♥', '☆', '★', '💕', '✨']);
+        h.style.left = x + rand(-15, 15) + 'px';
+        h.style.top = y + 'px';
+        h.style.color = pick(['#ff6699', '#ff9933', '#66aaff']);
+        h.style.setProperty('--dx', rand(-40, 40) + 'px');
+        document.body.appendChild(h);
+        setTimeout(() => h.remove(), 1200);
+      }
+    }
+
+    // 메뉴 탭
+    const tabs = document.querySelectorAll('#tabs button');
+    tabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabs.forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.tab-page').forEach(p =>
+          p.classList.toggle('active', p.dataset.page === btn.dataset.tab));
+      });
+    });
+
+    // BGM 재생/일시정지 (소리는 없고 흉내만 내요 ♪)
+    const bgm = document.getElementById('bgm');
+    const bgmBtn = document.getElementById('bgmBtn');
+    bgmBtn.addEventListener('click', () => {
+      const paused = bgm.classList.toggle('paused');
+      bgmBtn.textContent = paused ? '▶' : '❚❚';
+    });
+
+    // 프로필 사진 클릭 → 표정 + 기분 바뀜
+    const moods = [['😎', '😎 쿨함'], ['😆', '😆 신남'], ['🥰', '🥰 행복'], ['😴', '😴 졸림'], ['🤩', '🤩 설렘'], ['😋', '😋 배고픔']];
+    document.getElementById('photo').addEventListener('click', e => {
+      const [face, text] = pick(moods);
+      document.getElementById('face').textContent = face;
+      document.getElementById('moodText').textContent = text;
+      hearts(e.clientX, e.clientY);
+    });
+
+    // 취미 카드 → 하트 뿅
+    document.querySelectorAll('.hobby-card').forEach(card => {
+      card.addEventListener('click', e => hearts(e.clientX, e.clientY, 8));
+    });
+
+    // 인사하기
+    document.getElementById('helloBtn').addEventListener('click', () => {
+      alert('반가워요!');
+    });
+
+    // 일촌 신청
+    document.getElementById('ilchonBtn').addEventListener('click', e => {
+      const el = document.getElementById('ilchon');
+      el.textContent = Number(el.textContent) + 1;
+      e.target.textContent = '💕 일촌 완료!';
+      e.target.disabled = true;
+      hearts(e.clientX, e.clientY, 10);
+    });
+
+    // 미니룸: 미니미 이동 + 말풍선
+    const minime = document.getElementById('minime');
+    const bubble = document.getElementById('bubble');
+    const room = document.getElementById('room');
+    const lines = ['안뇽~ ㅎㅎ 👋', '놀러와줘서 고마워 ♡', '도토리 주세요 🌰', '오늘 야구 이겼다!! ⚾', '여행 가고 싶다 ✈️'];
+
+    function moveMinime(percent, text) {
+      minime.style.left = percent + '%';
+      bubble.style.left = percent + '%';
+      bubble.textContent = text;
+    }
+
+    minime.addEventListener('click', e => {
+      moveMinime(rand(20, 70), pick(lines));
+      hearts(e.clientX, e.clientY, 4);
+    });
+
+    room.querySelectorAll('.item[data-say]').forEach(item => {
+      item.addEventListener('click', e => {
+        const r = room.getBoundingClientRect();
+        const percent = ((item.getBoundingClientRect().left - r.left) / r.width) * 100 - 8;
+        moveMinime(Math.max(5, percent), item.dataset.say);
+        hearts(e.clientX, e.clientY, 4);
+      });
+    });
+
+    // 투데이 숫자 살짝 랜덤
+    document.getElementById('today').textContent = Math.floor(rand(10, 60));
+
+    // 방명록 (이 브라우저에만 저장돼요)
+    const guestList = document.getElementById('guestList');
+    const guestCount = document.getElementById('guestCount');
+    const KEY = 'hooni-guestbook';
+
+    function addGuest({ name, msg, date }) {
+      const li = document.createElement('li');
+      const b = document.createElement('b');
+      b.textContent = name;
+      const rel = document.createElement('span');
+      rel.className = 'rel';
+      rel.textContent = date;
+      li.append(b, ` : ${msg} `, rel);
+      guestList.prepend(li);
+      guestCount.textContent = guestList.children.length;
+    }
+
+    let saved = [];
+    try { saved = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) {}
+    saved.forEach(addGuest);
+
+    document.getElementById('guestForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('guestName').value.trim() || '손님';
+      const msgInput = document.getElementById('guestMsg');
+      const msg = msgInput.value.trim();
+      if (!msg) return;
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const entry = { name, msg, date: `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}` };
+      addGuest(entry);
+      saved.push(entry);
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      msgInput.value = '';
+      const acorn = document.getElementById('acorn');
+      acorn.textContent = Number(acorn.textContent) + 1;
+      const r = msgInput.getBoundingClientRect();
+      hearts(r.left + r.width / 2, r.top, 8);
+    });
+  </script>
+</body>
+</html>

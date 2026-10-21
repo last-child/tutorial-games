@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>신사 여우</title>
+<meta name="theme-color" content="#14123a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@500;700&display=swap">
+<style>
+  :root {
+    --ink: #231b4d;
+    --night: #14123a;
+    --vermilion: #d8452e;
+    --gold: #f2c14e;
+    --sakura: #f3a6d6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: #0b0a22;
+    color: #fff;
+    font-family: 'Noto Sans KR', sans-serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  ::selection { background: var(--sakura); color: var(--ink); }
+
+  /* 게임 틀은 가로. 1em = 틀 높이의 1%라서 HUD가 틀 크기를 따라 커지고 작아진다 */
+  #stage {
+    position: fixed; left: 50%; top: 50%;
+    width: var(--frame-w, 100vw); height: var(--frame-h, 100vh);
+    transform: translate(-50%, -50%);
+    overflow: hidden;
+    background: var(--night);
+    font-size: var(--unit, 7px);
+    touch-action: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* 배경: 신사 그림 한 장이 옆으로 끝없이 이어진다. 위 풍경은 느리게, 여우가 달리는 돌길과 돌담은 빠르게 흐른다 */
+  .layer { position: absolute; left: 0; right: 0; overflow: hidden; }
+  .layer > div {
+    position: absolute; top: 0; left: 0; height: 100%;
+    background-image: url("img/shrine.webp");
+    background-repeat: repeat-x;
+    background-size: auto var(--frame-h, 100vh);
+    will-change: transform;
+  }
+  #far { top: 0; height: 100%; }
+  #ground { top: var(--cut, 73.5%); bottom: 0; }
+  #ground > div { background-position: 0 calc(var(--cut-px, 0px) * -1); }
+
+  #shadow {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(10, 8, 34, .55), rgba(10, 8, 34, 0));
+  }
+  /* 여우: 달리기 그림 6장, 점프 그림 6장(각각 3열 × 2행 시트)을 번갈아 보여 준다 */
+  #hero {
+    position: absolute; left: 0; top: 0;
+    background: url("img/fox-run.webp") 0 0 / 300% 200% no-repeat;
+    pointer-events: none;
+    will-change: transform;
+  }
+  #hero.is-jump { background-image: url("img/fox-jump.webp"); }
+  /* 부딪힌 뒤 다치지 않는 동안 깜빡인다 */
+  #hero.is-hurt { animation: hurt-blink .16s steps(2, jump-none) infinite; }
+  @keyframes hurt-blink { from { opacity: 1; } to { opacity: .3; } }
+
+  /* 다루마: 흔들리는 그림 8장(4열 × 2행 시트) */
+  .daruma {
+    position: absolute; left: 0; top: 0;
+    background: url("img/daruma.webp") 0 0 / 400% 200% no-repeat;
+    will-change: transform;
+  }
+
+  /* HUD */
+  .hud-left {
+    position: absolute;
+    left: max(3.4em, env(safe-area-inset-left));
+    top: 3.2em;
+    display: flex; flex-direction: column; gap: 1.4em;
+  }
+  .hearts { display: flex; gap: .9em; }
+  .heart { width: max(20px, 6em); height: auto; display: block; }
+  /* 하트 그림은 <use>로 불러 써서 안쪽에 CSS가 닿지 않는다. 색은 변수로 넘긴다 */
+  .heart.is-empty { --heart-fill: #3a3166; --heart-shine: transparent; }
+  /* 방금 잃은 하트는 톡 커졌다가 빈다 */
+  .heart.is-lost { animation: heart-lost .5s cubic-bezier(.2, 1.6, .4, 1); }
+  @keyframes heart-lost { 0% { transform: scale(1); } 30% { transform: scale(1.45) rotate(-8deg); } 100% { transform: scale(1); } }
+  .coins { display: flex; align-items: center; gap: 1em; }
+  .coins svg { width: max(18px, 5.4em); height: auto; display: block; }
+  .coins b {
+    font: 400 max(16px, 4.8em)/1 'Jua', sans-serif;
+    color: #fff;
+    -webkit-text-stroke: .1em var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 0 .14em 0 rgba(0, 0, 0, .45);
+    font-variant-numeric: tabular-nums;
+  }
+  .coins b small { font-size: .7em; margin-right: .1em; }
+
+  .score {
+    position: absolute; left: 50%; top: 3em;
+    transform: translateX(-50%);
+    min-width: max(110px, 24em);
+    padding: 1.1em 3.6em 1.3em;
+    border-radius: 2.6em;
+    background: #fffdf8;
+    box-shadow: 0 .6em 1.6em rgba(0, 0, 0, .35), inset 0 -.5em 0 #ece4f4;
+    text-align: center;
+    color: var(--ink);
+    font-family: 'Jua', sans-serif;
+  }
+  .score span { display: block; font-size: max(11px, 2.9em); letter-spacing: .14em; color: #7a6aa8; line-height: 1; }
+  .score b { display: block; font-weight: 400; font-size: max(20px, 6.2em); line-height: 1.05; font-variant-numeric: tabular-nums; }
+
+  /* 시작/일시정지: 주홍 옻칠 동그란 버튼에 금빛 테 */
+  #start {
+    position: absolute;
+    right: max(3.4em, env(safe-area-inset-right));
+    top: 3.2em;
+    font-size: inherit;
+    width: max(44px, 10.5em); height: max(44px, 10.5em);
+    padding: 0; border-radius: 50%;
+    border: max(2px, .6em) solid var(--gold);
+    background: radial-gradient(circle at 38% 30%, #f2735a, var(--vermilion) 58%, #a12a1c);
+    box-shadow: 0 .7em 0 #6e1a10, 0 1em 2.4em rgba(0, 0, 0, .4);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s;
+  }
+  #start svg { width: 42%; height: 42%; display: block; }
+  #start:hover { transform: translateY(-.3em); box-shadow: 0 1em 0 #6e1a10, 0 1.4em 2.8em rgba(0, 0, 0, .45); }
+  #start:active { transform: translateY(.5em); box-shadow: 0 .2em 0 #6e1a10, 0 .4em 1.2em rgba(0, 0, 0, .35); }
+  #start:focus-visible { outline: max(2px, .5em) solid #fff; outline-offset: .5em; }
+  #start .icon-pause { display: none; }
+  #start.is-playing .icon-start { display: none; }
+  #start.is-playing .icon-pause { display: block; }
+
+  /* 소리 켜기/끄기: 시작 버튼 왼쪽의 작은 남색 옻칠 버튼, 같은 금빛 테 */
+  #sound {
+    position: absolute;
+    font-size: inherit;
+    right: calc(max(3.4em, env(safe-area-inset-right)) + max(44px, 10.5em) + 2.2em);
+    top: calc(3.2em + (max(44px, 10.5em) - max(40px, 7.4em)) / 2);
+    width: max(40px, 7.4em); height: max(40px, 7.4em);
+    padding: 0; border-radius: 50%;
+    border: max(2px, .5em) solid var(--gold);
+    background: radial-gradient(circle at 38% 30%, #5a56b8, #2a2672 60%, #17154a);
+    box-shadow: 0 .55em 0 #0e0c33, 0 .9em 2em rgba(0, 0, 0, .4);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s;
+  }
+  #sound svg { width: 46%; height: 46%; display: block; }
+  #sound:hover { transform: translateY(-.25em); box-shadow: 0 .8em 0 #0e0c33, 0 1.2em 2.4em rgba(0, 0, 0, .45); }
+  #sound:active { transform: translateY(.4em); box-shadow: 0 .15em 0 #0e0c33, 0 .3em 1em rgba(0, 0, 0, .35); }
+  #sound:focus-visible { outline: max(2px, .5em) solid #fff; outline-offset: .5em; }
+  #sound .icon-off { display: none; }
+  #sound.is-muted .icon-on { display: none; }
+  #sound.is-muted .icon-off { display: block; }
+
+  /* 일시정지 중에는 장면을 조금 어둡게 */
+  #dim { position: absolute; inset: 0; background: rgba(12, 10, 40, .38); opacity: 0; transition: opacity .2s; pointer-events: none; }
+  #stage.is-paused #dim { opacity: 1; }
+
+  /* 게임 오버: 장면을 어둡게 덮고 가운데에 남색 옻칠 카드 */
+  #over {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    background: rgba(8, 6, 30, .5);
+    animation: fade .3s ease-out;
+  }
+  #over[hidden] { display: none; }
+  @keyframes fade { from { opacity: 0; } }
+  .over-card {
+    min-width: max(220px, 46em);
+    padding: 4.4em 6em 4.8em;
+    border-radius: 4em;
+    border: max(2px, .7em) solid var(--gold);
+    background: radial-gradient(circle at 50% 0%, #3a3590, #1d1a5a 70%);
+    box-shadow: 0 1.2em 0 #0e0c33, 0 2em 5em rgba(0, 0, 0, .5);
+    text-align: center;
+    font-family: 'Jua', sans-serif;
+    animation: pop .4s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  @keyframes pop { from { transform: scale(.7); } }
+  .over-card h2 { margin: 0; font-weight: 400; font-size: max(26px, 9em); line-height: 1.1; color: #fff8ec; }
+  .over-score { margin: 1.6em 0 3.4em; font-size: max(15px, 4.6em); color: #cfc6f4; }
+  .over-score b { margin-left: .4em; font-weight: 400; font-size: 1.5em; color: #fff; font-variant-numeric: tabular-nums; }
+  #retry {
+    font: inherit; font-size: max(16px, 5.2em);
+    display: inline-flex; align-items: center; gap: .4em;
+    padding: .55em 1.5em .6em;
+    border-radius: 99em;
+    border: max(2px, .12em) solid var(--gold);
+    background: radial-gradient(circle at 38% 20%, #c63b25, #b0301e 58%, #8f2416);
+    color: #fff8ec;
+    box-shadow: 0 .14em 0 #6e1a10, 0 .3em .6em rgba(0, 0, 0, .35);
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s;
+  }
+  #retry svg { width: .95em; height: .95em; }
+  #retry:hover { transform: translateY(-.06em); box-shadow: 0 .2em 0 #6e1a10, 0 .4em .8em rgba(0, 0, 0, .4); }
+  #retry:active { transform: translateY(.1em); box-shadow: 0 .04em 0 #6e1a10, 0 .1em .3em rgba(0, 0, 0, .3); }
+  #retry:focus-visible { outline: max(2px, .1em) solid #fff; outline-offset: .15em; }
+  #start[hidden] { display: none; }
+
+  /* 폰을 세로로 들면 가로로 돌리라는 안내만 덮는다 */
+  #rotate {
+    position: fixed; inset: 0; z-index: 10;
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+    background: radial-gradient(circle at 50% 40%, #2a2466, var(--night) 70%);
+    color: #fff;
+    font: 400 22px/1.4 'Jua', sans-serif;
+    text-align: center;
+  }
+  #rotate svg { width: 96px; height: 96px; animation: turn 2.4s ease-in-out infinite; }
+  @keyframes turn { 0%, 20% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
+  @media (orientation: portrait) and (pointer: coarse) {
+    #rotate { display: flex; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #rotate svg { animation: none; transform: rotate(-90deg); }
+  }
+</style>
+</head>
+<body>
+<main id="stage" aria-label="신사 여우">
+  <div class="layer" id="far"><div></div></div>
+  <div class="layer" id="ground"><div></div></div>
+  <div id="darumas" aria-hidden="true"></div>
+  <div id="shadow" aria-hidden="true"></div>
+  <div id="hero" role="img" aria-label="흰 여우"></div>
+  <div id="dim" aria-hidden="true"></div>
+  <section id="over" aria-labelledby="over-title" hidden>
+    <div class="over-card">
+      <h2 id="over-title">게임 오버</h2>
+      <p class="over-score">점수<b id="over-score">0</b></p>
+      <button id="retry" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95" fill="none" stroke="#fff8ec" stroke-width="2.8" stroke-linecap="round"/><path d="M19.5 3.5v5h-5" fill="none" stroke="#fff8ec" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        다시하기
+      </button>
+    </div>
+  </section>
+
+  <div class="hud-left">
+    <div class="hearts" id="hearts" role="img" aria-label="목숨 4개"></div>
+    <div class="coins">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <defs>
+          <radialGradient id="coin-face" cx=".38" cy=".32" r=".75">
+            <stop offset="0" stop-color="#fff2a8"/>
+            <stop offset=".55" stop-color="#f6c443"/>
+            <stop offset="1" stop-color="#d9921c"/>
+          </radialGradient>
+        </defs>
+        <circle cx="24" cy="25.5" r="20" fill="#8a5410"/>
+        <circle cx="24" cy="23" r="20" fill="url(#coin-face)" stroke="#6b3f0c" stroke-width="2.4"/>
+        <circle cx="24" cy="23" r="14.5" fill="none" stroke="#c98418" stroke-width="2"/>
+        <path d="M24 12.2l3.1 6.6 7.2.8-5.4 4.9 1.5 7.1L24 28l-6.4 3.6 1.5-7.1-5.4-4.9 7.2-.8z" fill="#fff6c9" stroke="#b5700f" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M12 15a14 14 0 0 1 8-6" fill="none" stroke="#fffbe6" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
+      </svg>
+      <b><small>×</small><span id="coin-count">0</span></b>
+    </div>
+  </div>
+
+  <div class="score" aria-live="off"><span>SCORE</span><b id="score">0</b></div>
+
+  <button id="start" type="button" aria-label="시작">
+    <svg class="icon-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2Q8 3.8 9.3 4.6L19.2 11Q20.4 12 19.2 13L9.3 19.4Q8 20.2 8 18.8Z" fill="#fff8ec"/></svg>
+    <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.2" y="4.8" width="4.2" height="14.4" rx="1.4" fill="#fff8ec"/><rect x="13.6" y="4.8" width="4.2" height="14.4" rx="1.4" fill="#fff8ec"/></svg>
+  </button>
+  <button id="sound" type="button" aria-label="소리 끄기">
+    <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5h3.5l4.5-4v13l-4.5-4H3.5z" fill="#fff8ec" stroke="#fff8ec" stroke-width="1.2" stroke-linejoin="round"/><path d="M15 9a4 4 0 0 1 0 6M17.6 6.4a7.6 7.6 0 0 1 0 11.2" fill="none" stroke="#fff8ec" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5h3.5l4.5-4v13l-4.5-4H3.5z" fill="#fff8ec" stroke="#fff8ec" stroke-width="1.2" stroke-linejoin="round"/><path d="M15 9.5l5 5M20 9.5l-5 5" fill="none" stroke="#fff8ec" stroke-width="2.2" stroke-linecap="round"/></svg>
+  </button>
+</main>
+
+<div id="rotate" role="alert">
+  <svg viewBox="0 0 96 96" aria-hidden="true">
+    <rect x="30" y="12" width="36" height="72" rx="7" fill="none" stroke="#fff" stroke-width="5"/>
+    <rect x="42" y="74" width="12" height="4" rx="2" fill="#fff"/>
+  </svg>
+  <p style="margin:0">가로로 돌려 주세요</p>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="heart" viewBox="0 0 48 44">
+    <path class="fill" d="M24 40.5C11 31.5 4 24.3 4 15.6 4 9.3 8.8 4.5 14.8 4.5c4 0 7.2 2.1 9.2 5.4 2-3.3 5.2-5.4 9.2-5.4C39.2 4.5 44 9.3 44 15.6c0 8.7-7 15.9-20 24.9Z"
+      fill="var(--heart-fill, #e8434f)" stroke="#2a1640" stroke-width="3" stroke-linejoin="round"/>
+    <path class="shine" d="M11 14.5c0-3 2.2-5 4.8-5" fill="none" stroke="var(--heart-shine, #ffd0d4)" stroke-width="3.2" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<script id="logic">
+// 규칙과 계산. DOM 없이 Node에서 시험할 수 있다.
+var Fox = (function () {
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  // 게임 틀은 가로다. 16:9보다 좁은 창은 위아래를, 2.2:1보다 넓은 창은 양옆을 비운다. 그 사이면 창을 꽉 채운다.
+  var ASPECT = { min: 16 / 9, max: 2.2 };
+  function frame(winW, winH) {
+    var a = winW / winH;
+    if (a < ASPECT.min) return { w: winW, h: Math.round(winW / ASPECT.min) };
+    if (a > ASPECT.max) return { w: Math.round(winH * ASPECT.max), h: winH };
+    return { w: winW, h: winH };
+  }
+
+  // 배경 그림(2172×724)에서 여우가 달리는 돌길은 높이 73.5%~76.5%다.
+  var ART = { w: 2172, h: 724, cut: 0.735, feet: 0.757 };
+  // 여우 달리기 그림: 512×512 6장, 초당 10장. 발이 땅에 닿는 줄은 그림 높이 473px이다.
+  // size는 달리기 그림 한 칸을 틀 높이의 몇 배로 그릴지, x는 왼쪽에서 틀 너비의 몇 배 자리인지.
+  // bell은 달리기 그림에서 방울의 평균 자리(가로 px, 땅 줄 위로 몇 px). 점프 그림을 이 방울에 맞춰 놓는다.
+  var HERO = { size: 0.3, x: 0.05, cell: 512, feet: 473, frames: 6, fps: 10, bell: { x: 420, up: 124 } };
+
+  // 여우 점프 그림: 544×544 6장(웅크리기 → 도약 → 상승 → 정점 → 하강 → 착지). 달리기 그림과 같은 축척이다.
+  // 그림마다 방울 자리(bx, by)와 가장 낮은 점(low)을 쟀다. 웅크리기와 착지는 발을 땅에 붙이고(ground),
+  // 공중 그림은 방울을 점프 높이에 맞추되 가장 낮은 점이 땅 밑으로 가지 않게 한다.
+  var JUMP_ART = { cell: 544, frames: [
+    { bx: 435, by: 432, low: 490, ground: true },
+    { bx: 448, by: 305, low: 511 },
+    { bx: 415, by: 323, low: 493 },
+    { bx: 437, by: 263, low: 351 },
+    { bx: 427, by: 358, low: 441 },
+    { bx: 403, by: 381, low: 455, ground: true }
+  ] };
+  // 뛰기 전에 웅크리는 시간, 착지 그림을 보여 주는 시간(초)
+  var POSE = { crouch: 0.06, land: 0.12 };
+
+  function layout(w, h) {
+    var heroH = Math.round(h * HERO.size);
+    return {
+      w: w, h: h,
+      tile: h * ART.w / ART.h,          // 배경 그림 한 장의 너비(틀 높이에 맞춘 크기)
+      cutY: Math.round(h * ART.cut),
+      groundY: Math.round(h * ART.feet),
+      heroH: heroH, heroW: heroH,
+      heroX: Math.round(w * HERO.x)
+    };
+  }
+
+  // 점프. 높이는 틀 높이를 1로 잰다.
+  // 솟구친 뒤 중력에 점점 느려지며 꼭대기에 닿고, 다시 점점 빨라지며 내려온다.
+  var JUMP = { peak: 0.34, rise: 0.4 };
+  var GRAVITY = 2 * JUMP.peak / (JUMP.rise * JUMP.rise);
+  var JUMP_SPEED = 2 * JUMP.peak / JUMP.rise;
+
+  // crouch는 뛰기 전 웅크리고 남은 초, land는 착지 그림을 보여 줄 남은 초
+  function hero() { return { y: 0, vy: 0, grounded: true, crouch: 0, land: 0 }; }
+
+  // 땅에 있을 때만 뛴다. 누르면 잠깐 웅크렸다가 솟구친다. 공중이나 웅크리는 중에는 무시한다.
+  function jump(s) {
+    if (!s.grounded || s.crouch > 0) return false;
+    s.crouch = POSE.crouch;
+    s.land = 0;
+    return true;
+  }
+
+  // 프레임 간격이 들쭉날쭉해도 같은 궤적이 되도록 잘게 나눠 계산한다
+  function step(s, dt) {
+    var left = Math.min(dt, 0.1);
+    if (s.land > 0) s.land = Math.max(0, s.land - left);
+    if (s.crouch > 0) {
+      var c = Math.min(left, s.crouch);
+      s.crouch -= c;
+      left -= c;
+      if (s.crouch <= 1e-9) { s.crouch = 0; s.vy = JUMP_SPEED; s.grounded = false; }
+    }
+    while (left > 0 && !s.grounded) {
+      var k = Math.min(left, 1 / 240);
+      s.vy -= GRAVITY * k;
+      s.y += s.vy * k;
+      if (s.y <= 0) { s.y = 0; s.vy = 0; s.grounded = true; s.land = POSE.land; }
+      left -= k;
+    }
+    return s;
+  }
+
+  // 지금 보여 줄 그림. set은 'run'이나 'jump', i는 0부터 센 그림 번호.
+  // 공중에서는 오르는 빠르기로 도약 → 상승 → 정점 → 하강을 고른다.
+  function pose(s, runTime) {
+    if (s.crouch > 0) return { set: 'jump', i: 0 };
+    if (!s.grounded) {
+      var v = s.vy / JUMP_SPEED;
+      return { set: 'jump', i: v > 0.55 ? 1 : v > 0.2 ? 2 : v > -0.25 ? 3 : 4 };
+    }
+    if (s.land > 0) return { set: 'jump', i: 5 };
+    return { set: 'run', i: Math.floor(runTime * HERO.fps) % HERO.frames };
+  }
+
+  // 배경 흐름. 여우는 제자리에 있고 배경이 왼쪽으로 흘러서 여우가 오른쪽으로 달리는 것처럼 보인다.
+  // run은 돌길이 흐르는 빠르기(초당 틀 높이), far는 위 풍경이 돌길 대비 몇 배로 흐르는지.
+  var SCROLL = { run: 0.62, far: 0.35, ground: 1 };
+
+  // 흐른 거리에서 한 겹을 왼쪽으로 몇 px 밀지. 그림 한 장 너비(tile) 안에서 되돌아 반복한다.
+  function scrollOffset(dist, factor, h, tile) {
+    var o = (dist * factor * h) % tile;
+    return o < 0 ? o + tile : o;
+  }
+
+  // 점수는 1초에 10점.
+  var SCORE_RATE = 10;
+  var LIVES = 4;
+
+  // 같은 씨앗이면 같은 판이 나오게 하는 난수
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // 다루마(방해물). 돌길에 놓인 채 흔들거리고, 돌길과 같은 빠르기로 흘러온다. 길이는 모두 틀 높이를 1로 잰다.
+  // 그림은 360×360 8장, 초당 5장. 크기는 여우 키(귀 끝~발끝)의 반이다.
+  // cx는 그림 칸 안 몸통 가운데 가로 자리, feet는 바닥이 닿는 줄(px), w·h는 몸통 너비·높이(px).
+  var DARUMA = { cell: 360, size: 0.176, frames: 8, fps: 5, cx: 184, feet: 319, w: 217, h: 222, first: 2.0 };
+  // 다음 다루마까지 간격(초). 가장 짧아도 한 번 뛰어 착지하고 숨 돌릴 틈은 둔다.
+  var AIRTIME = POSE.crouch + 2 * JUMP.rise;
+  var GAP = { min: AIRTIME + 0.6, max: AIRTIME + 2.4 };
+  // 부딪힌 뒤 깜빡이며 다시 다치지 않는 시간(초)
+  var HURT_SAFE = 1.2;
+
+  // 여우 몸통 판정. 달리기 그림 칸(512px) 안에서 꼬리와 귀를 뺀 몸통·머리만 잡는다(x0~x1, 발에서 위로 up px).
+  var HERO_BOX = { x0: 240, x1: 475, up: 230 };
+
+  function heroBox(wd, viewW) {
+    var k = HERO.size / HERO.cell, left = HERO.x * viewW, lift = wd.hero.y;
+    return { x0: left + HERO_BOX.x0 * k, x1: left + HERO_BOX.x1 * k, y0: lift, y1: lift + HERO_BOX.up * k };
+  }
+  function darumaBox(d) {
+    var k = DARUMA.size / DARUMA.cell, hw = DARUMA.w * k * 0.4;
+    return { x0: d.x - hw, x1: d.x + hw, y0: 0, y1: DARUMA.h * k * 0.9 };
+  }
+  function touching(a, b) { return a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0; }
+
+  function nextGap(r) { return GAP.min + r() * (GAP.max - GAP.min); }
+
+  // dist는 배경이 흐른 거리라 다시 해도 이어지고, time은 이번 판에 달린 시간, points는 이번 판 점수다.
+  // hits는 이번 프레임에 부딪힌 일(화면 연출용), safe는 깜빡이는 남은 초.
+  function world(seed) {
+    return { started: false, paused: false, over: false, dist: 0, time: 0, points: 0, lives: LIVES, coins: 0, hero: hero(),
+      darumas: [], spawnIn: DARUMA.first, safe: 0, hits: [], r: rng(seed || 1) };
+  }
+
+  function score(wd) { return Math.floor(wd.points); }
+  function playing(wd) { return wd.started && !wd.paused && !wd.over; }
+
+  // 시작 버튼 한 개로 시작 → 일시정지 → 다시 시작을 오간다. 게임 오버 뒤에는 다시하기로만 시작한다.
+  function toggle(wd) {
+    if (wd.over) return wd;
+    if (!wd.started) { wd.started = true; wd.paused = false; }
+    else wd.paused = !wd.paused;
+    return wd;
+  }
+
+  // 다시하기. 버튼을 다시 누르지 않아도 곧바로 달린다. 배경은 멈춘 자리에서 이어 흐른다.
+  function restart(wd) {
+    wd.started = true;
+    wd.paused = false;
+    wd.over = false;
+    wd.time = 0;
+    wd.points = 0;
+    wd.lives = LIVES;
+    wd.coins = 0;
+    wd.hero = hero();
+    wd.darumas = [];
+    wd.spawnIn = DARUMA.first;
+    wd.safe = 0;
+    wd.hits = [];
+    return wd;
+  }
+
+  function tryJump(wd) { return playing(wd) ? jump(wd.hero) : false; }
+
+  // 한 프레임 진행. viewW는 틀 너비(틀 높이를 1로 잰 값).
+  // 다루마에 닿으면 하트가 하나 줄고 잠깐 깜빡이며 다치지 않는다. 하트가 다 떨어지면 그 자리에서 바로 게임 오버다.
+  function update(wd, dt, viewW) {
+    if (!playing(wd)) return wd;
+    dt = Math.min(dt, 0.1);
+    viewW = viewW || 16 / 9;
+    step(wd.hero, dt);
+    wd.time += dt;
+    var move = SCROLL.run * dt;
+    wd.dist += move;
+    wd.points += SCORE_RATE * dt;
+    if (wd.safe > 0) wd.safe = Math.max(0, wd.safe - dt);
+
+    var half = DARUMA.size / 2, kept = [];
+    for (var i = 0; i < wd.darumas.length; i++) {
+      var d = wd.darumas[i];
+      d.x -= move;
+      if (d.x > -half) kept.push(d);
+    }
+    wd.darumas = kept;
+    wd.spawnIn -= dt;
+    if (wd.spawnIn <= 0) {
+      wd.darumas.push({ x: viewW + half, phase: wd.r() });
+      wd.spawnIn = nextGap(wd.r);
+    }
+
+    if (wd.safe <= 0) {
+      var hb = heroBox(wd, viewW);
+      for (var j = 0; j < wd.darumas.length; j++) {
+        var dm = wd.darumas[j];
+        if (!dm.hit && touching(hb, darumaBox(dm))) {
+          dm.hit = true;
+          wd.lives -= 1;
+          wd.hits.push({ x: dm.x, lives: wd.lives });
+          if (wd.lives <= 0) { wd.lives = 0; wd.over = true; }
+          else wd.safe = HURT_SAFE;
+          break;
+        }
+      }
+    }
+    return wd;
+  }
+
+  // 다루마가 흔들리는 그림 번호. 다루마마다 박자를 조금씩 어긋나게 한다.
+  function darumaFrame(d, t) { return Math.floor(t * DARUMA.fps + d.phase * DARUMA.frames) % DARUMA.frames; }
+
+  return { clamp: clamp, ASPECT: ASPECT, frame: frame, ART: ART, HERO: HERO, layout: layout, JUMP: JUMP, JUMP_ART: JUMP_ART, POSE: POSE, pose: pose, hero: hero, jump: jump, step: step,
+    SCROLL: SCROLL, scrollOffset: scrollOffset, LIVES: LIVES, rng: rng, DARUMA: DARUMA, GAP: GAP, HURT_SAFE: HURT_SAFE, HERO_BOX: HERO_BOX,
+    heroBox: heroBox, darumaBox: darumaBox, touching: touching, world: world, score: score, playing: playing, toggle: toggle, restart: restart,
+    tryJump: tryJump, update: update, darumaFrame: darumaFrame };
+})();
+if (typeof module !== 'undefined') module.exports = Fox;
+</script>
+
+<script>
+(function () {
+  var stage = document.getElementById('stage');
+  var farEl = document.querySelector('#far > div'), groundEl = document.querySelector('#ground > div');
+  var heroEl = document.getElementById('hero'), shadowEl = document.getElementById('shadow');
+  var scoreEl = document.getElementById('score'), coinEl = document.getElementById('coin-count');
+  var heartsEl = document.getElementById('hearts');
+  var startBtn = document.getElementById('start');
+  var game = Fox.world((Math.random() * 4294967296) >>> 0);
+  var L;
+  var darumaLayer = document.getElementById('darumas');
+  var overEl = document.getElementById('over'), overScore = document.getElementById('over-score'), retryBtn = document.getElementById('retry');
+
+  // 점프 그림과 다루마 그림은 처음 쓰일 때 깜빡 비어 보이지 않게 미리 불러 풀어 둔다
+  ['img/fox-jump.webp', 'img/daruma.webp'].forEach(function (src) {
+    var im = new Image();
+    im.src = src;
+    if (im.decode) im.decode().catch(function () {});
+  });
+
+  // 하트 4개
+  for (var i = 0; i < Fox.LIVES; i++) {
+    heartsEl.insertAdjacentHTML('beforeend', '<svg class="heart" viewBox="0 0 48 44" aria-hidden="true"><use href="#heart"/></svg>');
+  }
+  function showLives() {
+    var hs = heartsEl.children;
+    for (var i = 0; i < hs.length; i++) hs[i].classList.toggle('is-empty', i >= game.lives);
+    heartsEl.setAttribute('aria-label', '목숨 ' + game.lives + '개');
+  }
+
+  function render() {
+    var f = Fox.frame(window.innerWidth, window.innerHeight);
+    L = Fox.layout(f.w, f.h);
+    stage.style.setProperty('--frame-w', f.w + 'px');
+    stage.style.setProperty('--frame-h', f.h + 'px');
+    stage.style.setProperty('--unit', (f.h / 100) + 'px');
+    stage.style.setProperty('--cut', L.cutY + 'px');
+    stage.style.setProperty('--cut-px', L.cutY + 'px');
+    // 배경 띠는 틀 너비에 그림 한 장 너비를 더한 만큼 길게 두고, 그 안에서 밀어 옮긴다
+    var stripW = Math.ceil(f.w + L.tile) + 2;
+    farEl.style.width = groundEl.style.width = stripW + 'px';
+    shownSet = '';
+    var sw = L.heroW * 0.6;
+    shadowEl.style.width = sw + 'px';
+    shadowEl.style.height = (L.h * 0.035) + 'px';
+    shadowEl.style.left = (L.heroX + L.heroW * 0.58 - sw / 2) + 'px';
+    shadowEl.style.top = (L.groundY - L.h * 0.02) + 'px';
+    drawScene();
+    placeHero();
+    placeDarumas();
+  }
+
+  // 다루마: 화면에 있는 만큼 칸을 꺼내 쓰고, 남는 칸은 숨긴다
+  var darumaPool = [];
+  function placeDarumas() {
+    var ds = game.darumas, D = Fox.DARUMA, k = D.size * L.h / D.cell, size = D.cell * k;
+    while (darumaPool.length < ds.length) {
+      var el = document.createElement('div');
+      el.className = 'daruma';
+      darumaLayer.appendChild(el);
+      darumaPool.push({ el: el, f: -1, size: 0 });
+    }
+    for (var i = 0; i < darumaPool.length; i++) {
+      var slot = darumaPool[i];
+      if (i >= ds.length) { slot.el.style.display = 'none'; continue; }
+      var d = ds[i], f = Fox.darumaFrame(d, game.time);
+      slot.el.style.display = '';
+      if (slot.size !== size) { slot.size = size; slot.el.style.width = slot.el.style.height = size.toFixed(2) + 'px'; }
+      if (slot.f !== f) { slot.f = f; slot.el.style.backgroundPosition = (f % 4) * (100 / 3) + '% ' + Math.floor(f / 4) * 100 + '%'; }
+      var x = d.x * L.h - D.cx * k, y = L.groundY - D.feet * k;
+      slot.el.style.transform = 'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0)';
+    }
+  }
+
+  function drawScene() {
+    var S = Fox.SCROLL;
+    var o1 = Fox.scrollOffset(game.dist, S.far, L.h, L.tile);
+    var o2 = Fox.scrollOffset(game.dist, S.ground, L.h, L.tile);
+    farEl.style.transform = 'translate3d(' + (-o1).toFixed(2) + 'px,0,0)';
+    groundEl.style.transform = 'translate3d(' + (-o2).toFixed(2) + 'px,0,0)';
+  }
+
+  // 여우 그림을 고르고 놓는다. 달리기 그림은 발끝 줄을 땅에 맞추고,
+  // 점프 그림은 방울을 달릴 때 방울 자리 + 점프 높이에 맞춘다(웅크리기와 착지는 발끝을 땅에 붙인다).
+  var shownSet = '', shownFrame = -1;
+  function placeHero() {
+    var h = game.hero, lift = h.y * L.h;
+    var p = game.started ? Fox.pose(h, game.time) : { set: 'run', i: 0 };
+    var H = Fox.HERO, k = L.heroH / H.cell, x, y;
+    if (p.set === 'run') {
+      x = L.heroX;
+      y = L.groundY - H.feet * k - lift;
+    } else {
+      var J = Fox.JUMP_ART, a = J.frames[p.i];
+      x = L.heroX + (H.bell.x - a.bx) * k;
+      y = a.ground ? L.groundY - a.low * k
+        : Math.min(L.groundY - (H.bell.up * k + lift) - a.by * k, L.groundY - a.low * k);
+    }
+    if (p.set !== shownSet) {
+      shownSet = p.set;
+      var size = (p.set === 'run' ? H.cell : Fox.JUMP_ART.cell) * k;
+      heroEl.classList.toggle('is-jump', p.set === 'jump');
+      heroEl.style.width = heroEl.style.height = size.toFixed(2) + 'px';
+      shownFrame = -1;
+    }
+    if (p.i !== shownFrame) {
+      shownFrame = p.i;
+      heroEl.style.backgroundPosition = (p.i % 3) * 50 + '% ' + Math.floor(p.i / 3) * 100 + '%';
+    }
+    heroEl.style.transform = 'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0)';
+    heroEl.classList.toggle('is-hurt', game.safe > 0 && !game.over);
+    // 그림자는 높이 뜰수록 작고 옅어진다
+    var sk = Fox.clamp(1 - lift / (L.h * 0.45), 0.35, 1);
+    shadowEl.style.transform = 'scale(' + sk.toFixed(3) + ')';
+    shadowEl.style.opacity = sk.toFixed(3);
+  }
+
+  var shown = -1;
+  function showScore() {
+    var s = Fox.score(game);
+    if (s !== shown) { shown = s; scoreEl.textContent = s.toLocaleString('ko-KR'); }
+    coinEl.textContent = game.coins;
+  }
+
+  // 배경음: 〈오오카미〉 풍 밤 신사 곡. Web Audio로 직접 합성한다(2026-10-21 사용자 선택).
+  // 미야코부시 음계(라 시♭ 레 미 파), 128 BPM, 4/4박, 16마디를 되풀이한다.
+  // 앞 8마디는 고토가 선율, 뒤 8마디는 대나무 피리(시노부에)가 선율이고 고토는 잘게 반주한다.
+  // 타이코 북이 박을 받치고, 낮은 울림이 바닥에 깔린다. 뒤 8마디에는 작은 징(카네)이 들어간다.
+  var Music = (function () {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    var KEY = 'hooni-fox-sound', VOLUME = 0.7, BEAT = 60 / 128;
+    // 마디마다 바닥 음(뿌리). 화음 대신 뿌리와 그 위 어울리는 음 하나를 울린다.
+    var ROOT = [45, 45, 50, 50, 41, 41, 40, 40, 50, 50, 45, 45, 46, 46, 40, 45];
+    var UPPER = { 45: 52, 50: 57, 41: 46, 40: 45, 46: 53 };
+    // 뒤 8마디 고토 반주: 뿌리마다 여덟 음
+    var ARP = {
+      50: [62, 69, 74, 69, 65, 69, 74, 77],
+      45: [57, 64, 69, 64, 58, 64, 69, 70],
+      46: [58, 65, 70, 65, 62, 65, 70, 74],
+      40: [52, 57, 64, 57, 58, 64, 69, 64]
+    };
+    // 선율: [8분음표 자리, 음, 길이(8분음표 몇 개)]
+    var KOTO = [
+      [[0, 69, 2], [2, 76, 1], [3, 74, 1], [4, 76, 2], [6, 77, 1], [7, 76, 1]],
+      [[0, 74, 3], [3, 70, 1], [4, 69, 4]],
+      [[0, 74, 2], [2, 77, 1], [3, 76, 1], [4, 74, 2], [6, 70, 1], [7, 69, 1]],
+      [[0, 70, 3], [3, 69, 1], [4, 64, 4]],
+      [[0, 65, 2], [2, 69, 1], [3, 70, 1], [4, 74, 2], [6, 76, 2]],
+      [[0, 77, 2], [2, 76, 1], [3, 74, 1], [4, 76, 4]],
+      [[0, 81, 2], [2, 77, 1], [3, 76, 1], [4, 74, 1], [5, 70, 1], [6, 69, 2]],
+      [[0, 70, 1], [1, 69, 1], [2, 64, 2], [4, 69, 4]]
+    ];
+    var FLUTE = [
+      [[0, 74, 4], [4, 77, 2], [6, 76, 2]],
+      [[0, 74, 6], [6, 69, 2]],
+      [[0, 76, 3], [3, 77, 1], [4, 81, 4]],
+      [[0, 77, 2], [2, 76, 2], [4, 74, 4]],
+      [[0, 77, 4], [4, 76, 2], [6, 74, 2]],
+      [[0, 76, 6], [6, 74, 1], [7, 76, 1]],
+      [[0, 77, 2], [2, 76, 2], [4, 74, 2], [6, 70, 2]],
+      [[0, 69, 8]]
+    ];
+    // 타이코: 'D'는 둥, 'k'는 테두리를 치는 딱. 넷째 마디마다 끝을 둥둥으로 채운다.
+    var DRUM_A = 'D...D.k.', DRUM_B = 'D.kDD.kk', FILL = 'D.k.D.DD';
+
+    var ctx = null, master = null, bus = null, sfx = null, drone = null, timer = 0, on = false, bar = 0, nextAt = 0, tempo = 1;
+    var noiseBuf = null, strings = {};
+    var muted = false;
+    try { muted = localStorage.getItem(KEY) === 'off'; } catch (e) {}
+
+    function hz(n) { return 440 * Math.pow(2, (n - 69) / 12); }
+
+    function setup() {
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = 0;
+      var comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -18;
+      comp.knee.value = 12;
+      comp.ratio.value = 4;
+      comp.attack.value = 0.004;
+      comp.release.value = 0.25;
+      master.connect(comp);
+      // 압축기를 지나도 북과 고토가 겹치는 순간 조금 넘치므로, 끝에서 한 번 더 줄인다
+      var out = ctx.createGain();
+      out.gain.value = 0.85;
+      comp.connect(out);
+      out.connect(ctx.destination);
+      // 효과음은 음악과 따로 낸다. 게임 오버로 음악이 줄어도 부딪히는 소리는 끝까지 들린다
+      sfx = ctx.createGain();
+      sfx.gain.value = muted ? 0 : 1;
+      sfx.connect(comp);
+      // 신사 마당에 퍼지는 울림: 잡음이 서서히 잦아드는 소리를 임펄스로 쓴 리버브
+      var len = Math.round(ctx.sampleRate * 2.4), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (var c = 0; c < 2; c++) {
+        var d = ir.getChannelData(c);
+        for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      }
+      var verb = ctx.createConvolver(), wet = ctx.createGain();
+      verb.buffer = ir;
+      wet.gain.value = 0.38;
+      bus = ctx.createGain();
+      bus.connect(master);
+      bus.connect(verb);
+      verb.connect(wet);
+      wet.connect(master);
+      // 숨소리와 북 울림에 쓰는 잡음
+      var n = ctx.sampleRate * 2;
+      noiseBuf = ctx.createBuffer(1, n, ctx.sampleRate);
+      var nd = noiseBuf.getChannelData(0);
+      for (var j = 0; j < n; j++) nd[j] = Math.random() * 2 - 1;
+      // 바닥 울림: 뿌리와 그 위 음을 부드러운 삼각파로 길게 깔고, 마디가 바뀌면 천천히 옮겨 간다
+      var lp = ctx.createBiquadFilter(), g = ctx.createGain(), lfo = ctx.createOscillator(), lfoAmp = ctx.createGain();
+      lp.type = 'lowpass';
+      lp.frequency.value = 650;
+      lfo.frequency.value = 0.09;
+      lfoAmp.gain.value = 160;
+      lfo.connect(lfoAmp);
+      lfoAmp.connect(lp.frequency);
+      g.gain.value = 0.05;
+      drone = [ctx.createOscillator(), ctx.createOscillator()];
+      drone.forEach(function (o, k) {
+        o.type = 'triangle';
+        o.frequency.value = hz(k ? 52 : 45);
+        o.connect(lp);
+        o.start();
+      });
+      lp.connect(g);
+      g.connect(bus);
+      lfo.start();
+    }
+
+    // 고토: 줄을 튕기는 원리(카플러스-스트롱)로 줄 소리를 미리 만들어 둔다. 음마다 한 번만 만든다.
+    function stringBuf(n) {
+      if (strings[n]) return strings[n];
+      var sr = ctx.sampleRate, f = hz(n), dur = 1.8;
+      var N = Math.round(sr * dur), buf = ctx.createBuffer(1, N, sr), d = buf.getChannelData(0);
+      var p = sr / f - 0.5, P = Math.floor(p), fr = p - P;
+      var loss = Math.pow(0.001, 1 / (f * 1.6)); // 1.6초면 거의 사라진다
+      var prev = 0, peak = 0;
+      for (var i = 0; i < P + 2 && i < N; i++) { prev += 0.55 * ((Math.random() * 2 - 1) - prev); d[i] = prev; }
+      for (i = P + 2; i < N; i++) {
+        var a = d[i - P] * (1 - fr) + d[i - P - 1] * fr;
+        var b = d[i - P - 1] * (1 - fr) + d[i - P - 2] * fr;
+        d[i] = loss * 0.5 * (a + b);
+      }
+      for (i = 0; i < N; i++) if (Math.abs(d[i]) > peak) peak = Math.abs(d[i]);
+      for (i = 0; i < N; i++) d[i] /= peak || 1;
+      strings[n] = buf;
+      return buf;
+    }
+    // bend가 있으면 줄을 눌러 살짝 낮은 음에서 제 음으로 올린다(고토의 오시데)
+    function koto(t, n, vol, len, bend, dest) {
+      var src = ctx.createBufferSource(), g = ctx.createGain();
+      src.buffer = stringBuf(n);
+      if (bend) {
+        src.playbackRate.setValueAtTime(Math.pow(2, -1 / 12), t);
+        src.playbackRate.linearRampToValueAtTime(1, t + 0.09);
+      }
+      g.gain.setValueAtTime(vol, t);
+      if (len) {
+        g.gain.setValueAtTime(vol, t + len);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.25);
+      }
+      src.connect(g);
+      g.connect(dest || bus);
+      src.start(t);
+      src.stop(t + Math.min(1.8, (len || 1.8) + 0.3));
+    }
+    // 고토 훑기: 아래에서 위로 줄을 빠르게 쓸어 올린다. 곡이 처음 돌아올 때마다 한 번
+    function sweepKoto(t) {
+      [57, 58, 62, 64, 65, 69, 70, 74, 76, 77, 81].forEach(function (n, i) { koto(t + i * 0.028, n, 0.12 + i * 0.012); });
+    }
+    // 대나무 피리: 사인파에 두 배 음을 조금 섞고, 숨소리와 늦게 들어오는 떨림을 더한다.
+    // 앞 음과 다르면 위에서 살짝 꺾어 내려 붙인다.
+    function flute(t, n, len, vol) {
+      var f = hz(n), o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), g2 = ctx.createGain();
+      var lfo = ctx.createOscillator(), depth = ctx.createGain(), lp = ctx.createBiquadFilter();
+      o.type = 'sine';
+      o2.type = 'triangle';
+      o.frequency.setValueAtTime(f * 1.06, t);
+      o.frequency.exponentialRampToValueAtTime(f, t + 0.07);
+      o2.frequency.setValueAtTime(f * 2.12, t);
+      o2.frequency.exponentialRampToValueAtTime(f * 2, t + 0.07);
+      lfo.frequency.value = 5.4;
+      depth.gain.setValueAtTime(0, t);
+      depth.gain.linearRampToValueAtTime(f * 0.012, t + Math.min(0.5, len * 0.6));
+      lfo.connect(depth);
+      depth.connect(o.frequency);
+      g2.gain.value = 0.12;
+      lp.type = 'lowpass';
+      lp.frequency.value = 3200;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.06);
+      g.gain.setValueAtTime(vol, t + Math.max(0.08, len - 0.12));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.1);
+      o.connect(g);
+      o2.connect(g2);
+      g2.connect(g);
+      g.connect(lp);
+      lp.connect(bus);
+      // 숨소리: 잡음을 음 근처만 남겨 작게 섞는다. 불기 시작할 때 조금 더 세다
+      var br = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), bg = ctx.createGain();
+      br.buffer = noiseBuf;
+      bp.type = 'bandpass';
+      bp.frequency.value = f * 2;
+      bp.Q.value = 1.5;
+      bg.gain.setValueAtTime(0.0001, t);
+      bg.gain.exponentialRampToValueAtTime(vol * 0.7, t + 0.03);
+      bg.gain.exponentialRampToValueAtTime(vol * 0.18, t + 0.15);
+      bg.gain.setValueAtTime(vol * 0.18, t + Math.max(0.16, len - 0.1));
+      bg.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.1);
+      br.connect(bp);
+      bp.connect(bg);
+      bg.connect(bus);
+      var end = t + len + 0.15;
+      [o, o2, lfo].forEach(function (x) { x.start(t); x.stop(end); });
+      br.start(t, Math.random() * 1.5);
+      br.stop(end);
+    }
+    // 타이코: 둥(낮게 떨어지는 북 울림과 가죽 치는 소리), 딱(테두리를 치는 짧은 소리)
+    function don(t, vol, dest) {
+      var o = ctx.createOscillator(), g = ctx.createGain(), o2 = ctx.createOscillator(), g2 = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(120, t);
+      o.frequency.exponentialRampToValueAtTime(52, t + 0.3);
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      // 작은 스피커에서도 들리게 위쪽 울림을 하나 더
+      o2.type = 'triangle';
+      o2.frequency.setValueAtTime(240, t);
+      o2.frequency.exponentialRampToValueAtTime(110, t + 0.12);
+      g2.gain.setValueAtTime(vol * 0.45, t);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      o.connect(g); g.connect(dest || bus);
+      o2.connect(g2); g2.connect(dest || bus);
+      o.start(t); o.stop(t + 0.6);
+      o2.start(t); o2.stop(t + 0.2);
+      hit(t, 0.06, vol * 0.5, 'lowpass', 900, 0.7, dest);
+    }
+    function ka(t, vol) {
+      hit(t, 0.035, vol, 'bandpass', 2600, 3);
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.value = 1650;
+      g.gain.setValueAtTime(vol * 0.12, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+      o.connect(g); g.connect(bus);
+      o.start(t); o.stop(t + 0.05);
+    }
+    function hit(t, len, vol, type, freq, q, dest) {
+      var src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = noiseBuf;
+      f.type = type;
+      f.frequency.value = freq;
+      f.Q.value = q;
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      src.connect(f); f.connect(g); g.connect(dest || bus);
+      src.start(t, Math.random() * 1.5);
+      src.stop(t + len + 0.02);
+    }
+    // 작은 징(카네): 서로 어긋난 높은 울림 몇 개가 짧게 울린다
+    function kane(t, vol) {
+      [1180, 3260, 6370].forEach(function (f, i) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = f;
+        g.gain.setValueAtTime(vol / (i + 1), t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35 / (i + 1));
+        o.connect(g); g.connect(bus);
+        o.start(t); o.stop(t + 0.4);
+      });
+    }
+
+    // 높이가 미끄러지는 짧은 소리(효과음용)
+    function tone(t, f0, f1, len, vol, type) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f0, t);
+      o.frequency.exponentialRampToValueAtTime(f1, t + len);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      o.connect(g); g.connect(sfx);
+      o.start(t); o.stop(t + len + 0.05);
+    }
+    // 방울(스즈): 서로 어긋난 높은 울림 몇 개가 짧게 울린다
+    function suzu(t, vol) {
+      [2350, 5640, 9100].forEach(function (f, i) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = f * (0.995 + Math.random() * 0.01);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol / (i * 1.5 + 1), t + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28 / (i + 1));
+        o.connect(g); g.connect(sfx);
+        o.start(t); o.stop(t + 0.32);
+      });
+    }
+    // 휙: 잡음을 좁은 필터로 훑어 올린다
+    function whoosh(t, len, vol, f0, f1) {
+      var src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = noiseBuf;
+      f.type = 'bandpass';
+      f.Q.value = 1.6;
+      f.frequency.setValueAtTime(f0, t);
+      f.frequency.exponentialRampToValueAtTime(f1, t + len * 0.8);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + len * 0.3);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      src.connect(f); f.connect(g); g.connect(sfx);
+      src.start(t, Math.random() * 1.5);
+      src.stop(t + len + 0.02);
+    }
+    // 속이 빈 종이 다루마를 머리로 받은 콩 소리
+    function thunk(t, vol) {
+      tone(t, 210, 95, 0.22, vol, 'sine');
+      tone(t, 560, 300, 0.1, vol * 0.7, 'triangle');
+      hit(t, 0.06, vol * 0.8, 'bandpass', 1300, 1.2, sfx);
+    }
+
+    function playBar(b, t) {
+      var E = BEAT / 2 / tempo, i = b % 16, second = i >= 8, root = ROOT[i];
+      // 바닥 울림을 이 마디의 뿌리로 옮긴다
+      drone[0].frequency.setTargetAtTime(hz(root), t, 0.12);
+      drone[1].frequency.setTargetAtTime(hz(UPPER[root]), t, 0.12);
+      // 고토 낮은 줄로 뿌리를 1·3박에 짚는다
+      koto(t, root + 12, 0.32, 0, false);
+      koto(t + 4 * E, root + 12, 0.22, 0, false);
+      if (i === 0) sweepKoto(t - 0.3 > ctx.currentTime ? t - 0.3 : t);
+      if (!second) {
+        KOTO[i].forEach(function (nt) { koto(t + nt[0] * E, nt[1], 0.5, nt[2] >= 3 ? nt[2] * E : 0, nt[2] >= 3); });
+      } else {
+        FLUTE[i - 8].forEach(function (nt) { flute(t + nt[0] * E, nt[1] + 12, nt[2] * E, 0.11); });
+        var arp = ARP[root] || ARP[45];
+        for (var k = 0; k < 8; k++) koto(t + k * E, arp[k], k % 2 ? 0.16 : 0.24, 0, false);
+        kane(t + 2 * E, 0.05);
+        kane(t + 6 * E, 0.05);
+      }
+      var pat = i % 4 === 3 ? FILL : second ? DRUM_B : DRUM_A;
+      for (var s = 0; s < 8; s++) {
+        if (pat[s] === 'D') don(t + s * E, s === 0 ? 0.85 : 0.6);
+        else if (pat[s] === 'k') ka(t + s * E, 0.16);
+      }
+    }
+    function schedule() {
+      while (nextAt < ctx.currentTime + 0.3) {
+        playBar(bar, nextAt);
+        nextAt += 4 * BEAT / tempo;
+        bar++;
+      }
+    }
+    function fadeTo(v, sec) {
+      var now = ctx.currentTime;
+      master.gain.cancelScheduledValues(now);
+      master.gain.setValueAtTime(master.gain.value, now);
+      master.gain.linearRampToValueAtTime(v, now + sec);
+    }
+    return {
+      muted: function () { return muted; },
+      // 시작이나 다시 시작할 때. 처음 한 번은 버튼을 누른 순간에 만들어야 브라우저가 소리를 허락한다
+      play: function () {
+        if (!AC) return;
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+        if (!ctx) setup();
+        if (ctx.state === 'suspended') ctx.resume();
+        if (!on) {
+          on = true;
+          bar = 0;
+          nextAt = ctx.currentTime + 0.12;
+          schedule();
+          timer = setInterval(schedule, 50);
+        }
+        fadeTo(muted ? 0 : VOLUME, 0.5);
+      },
+      // 일시정지: 그 자리에서 멈췄다가 이어진다
+      pause: function () { if (ctx && ctx.state === 'running') ctx.suspend(); },
+      stop: function () {
+        if (!ctx || !on) return;
+        on = false;
+        clearInterval(timer);
+        fadeTo(0, 0.5);
+      },
+      // 점프: 휙 하는 바람에 목에 단 방울이 딸랑. 자주 나니까 작고 짧게
+      jump: function () {
+        if (!ctx) return;
+        var t = ctx.currentTime + 0.005;
+        whoosh(t, 0.24, 0.5, 600, 2400);
+        suzu(t + 0.02, 0.09);
+        suzu(t + 0.085, 0.06);
+      },
+      // 다루마에 부딪혀 하트를 잃음: 콩, 그리고 고토가 반음 내려앉는다
+      hurt: function () {
+        if (!ctx) return;
+        var t = ctx.currentTime + 0.005;
+        thunk(t, 0.75);
+        koto(t + 0.06, 77, 0.35, 0, false, sfx);
+        koto(t + 0.16, 76, 0.3, 0, true, sfx);
+      },
+      // 하트가 다 떨어짐: 더 큰 콩과 북, 그리고 고토가 아래로 흘러내린다
+      over: function () {
+        if (!ctx) return;
+        var t = ctx.currentTime + 0.005;
+        thunk(t, 1);
+        don(t, 0.9, sfx);
+        [76, 74, 70, 69, 64, 57].forEach(function (n, i) { koto(t + 0.18 + i * 0.13, n, 0.42 - i * 0.03, 0, i === 5, sfx); });
+      },
+      // 빨라지는 규칙이 생기면 곡도 따라 빨라지게 할 자리(k는 빠르기 배수)
+      setPace: function (k) { tempo = 1 + (k - 1) * 0.2; },
+      setMuted: function (m) {
+        muted = m;
+        try { localStorage.setItem(KEY, m ? 'off' : 'on'); } catch (e) {}
+        if (ctx && on) fadeTo(m ? 0 : VOLUME, 0.25);
+        if (sfx) sfx.gain.setValueAtTime(m ? 0 : 1, ctx.currentTime);
+      }
+    };
+  })();
+
+  function syncButton() {
+    var on = Fox.playing(game);
+    stage.classList.toggle('is-paused', game.started && game.paused);
+    startBtn.classList.toggle('is-playing', on);
+    startBtn.setAttribute('aria-label', on ? '일시정지' : '시작');
+    if (on) Music.play();
+    else if (game.paused) Music.pause();
+  }
+
+  var soundBtn = document.getElementById('sound');
+  function syncSound() {
+    var m = Music.muted();
+    soundBtn.classList.toggle('is-muted', m);
+    soundBtn.setAttribute('aria-label', m ? '소리 켜기' : '소리 끄기');
+  }
+  soundBtn.addEventListener('click', function (e) {
+    Music.setMuted(!Music.muted());
+    syncSound();
+    if (e.detail > 0) soundBtn.blur();
+  });
+
+  // 진동. 휴대폰처럼 손가락으로 쓰는 기기에서만 진동기를 울린다(아이폰 사파리는 진동을 못 한다).
+  // 긴 진동이 울리는 동안에는 톡 같은 약한 진동이 끊지 못한다.
+  var Buzz = (function () {
+    var ok = typeof navigator.vibrate === 'function' && window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    var busyUntil = 0;
+    function go(p, hold) {
+      if (!ok) return;
+      var now = performance.now();
+      if (now < busyUntil) return;
+      try { navigator.vibrate(p); } catch (e) { return; }
+      if (hold) busyUntil = now + [].concat(p).reduce(function (a, b) { return a + b; }, 0);
+    }
+    return {
+      tap: function () { go(12); },                                              // 화면, 버튼 톡
+      hurt: function () { busyUntil = 0; go(160, true); },                       // 다루마에 부딪혀 하트를 잃음
+      over: function () { busyUntil = 0; go([320, 120, 320, 120, 320], true); }  // 하트가 다 떨어짐
+    };
+  })();
+
+  // 폰에서는 처음 시작할 때 전체 화면 + 가로 고정을 시도한다(안 되는 브라우저는 그냥 넘어간다)
+  var triedFull = false;
+  function goFullscreen() {
+    if (triedFull || !matchMedia('(pointer: coarse)').matches) return;
+    triedFull = true;
+    var el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) return;
+    try {
+      var p = req.call(el);
+      if (p && p.then) p.then(function () {
+        if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
+  // 마우스로 누른 버튼은 바로 포커스를 놓는다. 그래야 스페이스가 버튼을 다시 누르지 않고 점프만 한다.
+  startBtn.addEventListener('click', function (e) {
+    goFullscreen();
+    Fox.toggle(game);
+    syncButton();
+    if (e.detail > 0) startBtn.blur();
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.code !== 'Space') return;
+    e.preventDefault();
+    if (e.repeat) return;
+    if (game.over) { if (overShown) retry(); return; }
+    if (Fox.tryJump(game)) Music.jump();
+  });
+  stage.addEventListener('pointerdown', function (e) {
+    if (e.pointerType !== 'mouse') Buzz.tap();
+    if (e.button > 0 || e.target.closest('button')) return;
+    e.preventDefault();
+    if (Fox.tryJump(game)) Music.jump();
+  });
+
+  // 다른 탭으로 가면 저절로 일시정지한다
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && Fox.playing(game)) { Fox.toggle(game); syncButton(); }
+  });
+
+  // 다루마에 부딪힘: 잃은 하트가 톡 튀며 비고, 콩 소리와 진동. 마지막 하트였으면 게임 오버(crash).
+  function onHit(h) {
+    showLives();
+    var lost = heartsEl.children[h.lives];
+    if (lost) {
+      lost.classList.remove('is-lost');
+      void lost.getBoundingClientRect();
+      lost.classList.add('is-lost');
+    }
+    if (h.lives > 0) { Music.hurt(); Buzz.hurt(); }
+  }
+  var OVER_DELAY = 600, overAt = 0, overShown = false;
+  function crash(t) {
+    overAt = t;
+    Music.stop();
+    Music.over();
+    Buzz.over();
+    startBtn.hidden = true;
+  }
+  function showOver() {
+    overShown = true;
+    overScore.textContent = Fox.score(game).toLocaleString('ko-KR');
+    overEl.hidden = false;
+    retryBtn.focus({ preventScroll: true });
+  }
+  function retry() {
+    Fox.restart(game);
+    overShown = false;
+    overEl.hidden = true;
+    startBtn.hidden = false;
+    showLives();
+    syncButton();
+    showScore();
+  }
+  retryBtn.addEventListener('click', retry);
+
+  var last = 0;
+  function tick(t) {
+    var dt = last && !game.paused ? (t - last) / 1000 : 0;
+    last = t;
+    var before = game.dist, wasOver = game.over;
+    Fox.update(game, dt, L.w / L.h);
+    while (game.hits.length) onHit(game.hits.shift());
+    if (game.over && !wasOver) crash(t);
+    if (game.over && !overShown && t - overAt >= OVER_DELAY) showOver();
+    if (game.dist !== before) drawScene();
+    placeHero();
+    placeDarumas();
+    showScore();
+    requestAnimationFrame(tick);
+  }
+
+  var pending = 0;
+  window.addEventListener('resize', function () {
+    cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(render);
+  });
+  syncSound();
+  showLives();
+  render();
+  showScore();
+  syncButton();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

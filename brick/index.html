@@ -1,0 +1,1494 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>벽돌깨기</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060a12'/%3E%3Crect x='5' y='6' width='10' height='6' rx='1.5' fill='none' stroke='%23ff5c9a' stroke-width='1.5'/%3E%3Crect x='17' y='6' width='10' height='6' rx='1.5' fill='none' stroke='%23b86bff' stroke-width='1.5'/%3E%3Crect x='5' y='14' width='10' height='6' rx='1.5' fill='none' stroke='%236c8bff' stroke-width='1.5'/%3E%3Crect x='17' y='14' width='10' height='6' rx='1.5' fill='none' stroke='%234fd8ff' stroke-width='1.5'/%3E%3Crect x='10' y='25' width='12' height='3' rx='1.5' fill='%23e6eeff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=Noto+Sans+KR:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060a12;
+    --ink: #eaf2ff;
+    --muted: #6f7c99;
+    --line: rgba(143, 180, 255, .16);
+    --accent: #4fd8ff;
+    --s: 2;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    overflow: hidden;
+    font-family: "Noto Sans KR", sans-serif;
+  }
+  .console { width: calc(200px * var(--s)); }
+  .hud {
+    display: flex;
+    align-items: flex-end;
+    gap: calc(4px * var(--s));
+    padding: 0 calc(3px * var(--s)) calc(3px * var(--s));
+    position: relative;
+  }
+  .hud::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 1px;
+    background: linear-gradient(to right, var(--accent) 0 calc(18px * var(--s)), var(--line) calc(18px * var(--s)));
+  }
+  .label {
+    font-size: max(11px, calc(5px * var(--s)));
+    letter-spacing: .14em;
+    color: var(--muted);
+    padding-bottom: calc(2.2px * var(--s));
+  }
+  .score {
+    font-family: "Chakra Petch", sans-serif;
+    font-weight: 600;
+    font-size: calc(15px * var(--s));
+    line-height: 1;
+    letter-spacing: .06em;
+    font-variant-numeric: tabular-nums;
+  }
+  .score .lead { color: rgba(234, 242, 255, .2); }
+  .lives {
+    margin-left: auto;
+    display: flex;
+    gap: calc(2.2px * var(--s));
+    padding-bottom: calc(1.6px * var(--s));
+  }
+  .lives svg {
+    width: calc(8px * var(--s));
+    height: calc(8px * var(--s));
+    overflow: visible;
+  }
+  .lives path {
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+  }
+  .lives .on path {
+    fill: #eaf6ff;
+    stroke: #eaf6ff;
+    filter: drop-shadow(0 0 3px rgba(79, 216, 255, .75));
+  }
+  .lives .off path {
+    fill: none;
+    stroke: rgba(143, 180, 255, .3);
+  }
+  .field { position: relative; margin-top: calc(4px * var(--s)); }
+  canvas { display: block; }
+
+  /* 게임 오버: 필드를 어둡게 덮고 가운데에 제목과 다시 하기 */
+  .over {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: calc(12px * var(--s));
+    background: rgba(6, 10, 18, .76);
+    animation: over-in .4s cubic-bezier(.16, 1, .3, 1) both;
+  }
+  .over[hidden] { display: none; }
+  .over-title {
+    display: flex;
+    align-items: center;
+    gap: calc(5px * var(--s));
+    font-weight: 700;
+    font-size: calc(13px * var(--s));
+    letter-spacing: .18em;
+    padding-left: .18em;
+    color: var(--ink);
+    text-shadow: 0 0 calc(6px * var(--s)) rgba(79, 216, 255, .35);
+    animation: over-rise .5s cubic-bezier(.16, 1, .3, 1) both;
+  }
+  .over-title::before, .over-title::after {
+    content: "";
+    width: calc(14px * var(--s));
+    height: 1px;
+    background: var(--accent);
+    opacity: .7;
+  }
+  .retry {
+    font: 500 max(14px, calc(6px * var(--s))) "Noto Sans KR", sans-serif;
+    letter-spacing: .08em;
+    color: #c8f2ff;
+    background: rgba(79, 216, 255, .07);
+    border: 1px solid rgba(79, 216, 255, .6);
+    border-radius: 3px;
+    min-height: 44px;
+    padding: 0 calc(12px * var(--s));
+    cursor: pointer;
+    transition: background-color .18s, border-color .18s, color .18s;
+    animation: over-rise .5s .08s cubic-bezier(.16, 1, .3, 1) both;
+  }
+  .retry:hover { background: rgba(79, 216, 255, .16); border-color: var(--accent); color: #fff; }
+  .retry:active { background: rgba(79, 216, 255, .24); }
+  .retry:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .clear { background: rgba(6, 10, 18, .62); }
+  .clear .over-title::before, .clear .over-title::after { background: #ffc94d; }
+
+  /* 효과음 켜고 끄기 */
+  .sound {
+    width: 44px;
+    height: 44px;
+    /* 아이콘 가운데를 별 가운데 높이에 맞춘다(별 아래 여백 + 별 반 높이 − 버튼 반 높이) */
+    margin: 0 -10px calc(5.6px * var(--s) - 22px) calc(1px * var(--s));
+    display: grid;
+    place-items: center;
+    background: none;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    color: rgba(143, 180, 255, .55);
+    transition: color .18s;
+  }
+  .sound:hover { color: var(--ink); }
+  .sound:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+  .sound svg { width: 20px; height: 20px; overflow: visible; }
+  .sound path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .sound .spk { fill: currentColor; }
+  .sound[aria-pressed="true"] .mute,
+  .sound[aria-pressed="false"] .wave { display: none; }
+
+  /* 휴대폰 조작: 손가락으로 쓰는 기기에서만 필드 아래에 보인다 */
+  .pad {
+    display: none;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+    height: 56px;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  @media (pointer: coarse) { .pad { display: grid; } }
+  .pad button {
+    display: grid;
+    place-items: center;
+    font: 500 14px "Noto Sans KR", sans-serif;
+    letter-spacing: .14em;
+    padding-left: .14em;
+    color: rgba(200, 242, 255, .8);
+    background: rgba(143, 180, 255, .05);
+    border: 1px solid rgba(143, 180, 255, .22);
+    border-radius: 4px;
+    cursor: pointer;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color .12s, border-color .12s, color .12s;
+  }
+  .pad button.fire { color: #c8f2ff; border-color: rgba(79, 216, 255, .5); background: rgba(79, 216, 255, .06); }
+  .pad button.on { color: #fff; background: rgba(79, 216, 255, .2); border-color: var(--accent); }
+  .pad button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pad svg { width: 22px; height: 22px; }
+  .pad path { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  @keyframes over-in { from { opacity: 0; } }
+  @keyframes over-rise { from { opacity: 0; transform: translateY(calc(4px * var(--s))); } }
+  @media (prefers-reduced-motion: reduce) {
+    .over, .over-title, .retry { animation: none; }
+  }
+  ::selection { background: rgba(79, 216, 255, .3); color: var(--ink); }
+</style>
+</head>
+<body>
+<main class="console">
+  <div class="hud">
+    <span class="label">점수</span>
+    <output class="score" id="score" aria-label="점수 0"><span class="lead">00000</span>0</output>
+    <div class="lives" id="lives" role="img" aria-label="목숨 3"></div>
+    <button type="button" class="sound" id="sound" aria-pressed="true" aria-label="효과음">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path class="spk" d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z"/>
+        <path class="wave" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"/>
+        <path class="mute" d="M16 9.5l5 5M21 9.5l-5 5"/>
+      </svg>
+    </button>
+  </div>
+  <div class="field">
+    <canvas id="field" role="img" aria-label="숫자 벽돌 4줄 8개와 막대, 공"></canvas>
+    <div class="over" id="over" role="dialog" aria-labelledby="over-title" hidden>
+      <p class="over-title" id="over-title">게임 오버</p>
+      <button type="button" class="retry" id="retry">다시 하기</button>
+    </div>
+    <div class="over clear" id="clear" role="dialog" aria-labelledby="clear-title" hidden>
+      <p class="over-title" id="clear-title">스테이지 1 클리어</p>
+      <button type="button" class="retry" id="next">다음 스테이지</button>
+    </div>
+  </div>
+  <div class="pad" id="pad">
+    <button type="button" data-hold="left" aria-label="왼쪽으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+    <button type="button" class="fire" id="fire">발사</button>
+    <button type="button" data-hold="right" aria-label="오른쪽으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+  </div>
+</main>
+
+<script id="logic">
+// 화면 규칙. 단위는 필드 좌표(200 × 260)다. Node에서 따로 시험할 수 있게 DOM을 쓰지 않는다.
+var Brick = {
+  W: 200, H: 260,
+  COLS: 8, ROWS: 4,
+  BW: 22, BH: 14, GAP: 2, TOP: 22,
+  // 숫자 = 깨지기까지 맞혀야 하는 횟수. 스테이지마다 좌우 대칭으로 섞어 둔 고정 배치를 차례로 쓰고, 끝나면 처음부터.
+  LAYOUTS: [
+    [
+      [4, 3, 4, 2, 2, 4, 3, 4],
+      [3, 2, 3, 1, 1, 3, 2, 3],
+      [2, 1, 4, 2, 2, 4, 1, 2],
+      [1, 3, 1, 1, 1, 1, 3, 1]
+    ],
+    [
+      [2, 4, 2, 4, 4, 2, 4, 2],
+      [3, 1, 3, 2, 2, 3, 1, 3],
+      [4, 2, 1, 3, 3, 1, 2, 4],
+      [1, 3, 2, 1, 1, 2, 3, 1]
+    ],
+    [
+      [4, 4, 3, 3, 3, 3, 4, 4],
+      [4, 3, 2, 2, 2, 2, 3, 4],
+      [3, 2, 1, 1, 1, 1, 2, 3],
+      [2, 1, 1, 4, 4, 1, 1, 2]
+    ]
+  ],
+  // 숫자가 클수록 차가운 색에서 뜨거운 색으로
+  COLORS: { 1: '#4fd8ff', 2: '#6c8bff', 3: '#b86bff', 4: '#ff5c9a' },
+  // 효과 벽돌: 판마다 무작위 자리. 숫자 대신 표시가 있고, 한 번 맞으면 깨지며 효과가 난다.
+  //  gold  공 추가(공 모양): 막대 조금 위에서 새 공이 떨어진다.
+  //  row   가로줄(↔ 모양): 같은 가로줄의 일반 벽돌 숫자를 하나씩 줄인다(효과 벽돌은 그대로).
+  //  col   세로줄(↕ 모양): 같은 세로줄의 일반 벽돌 숫자를 하나씩 줄인다(효과 벽돌은 그대로).
+  //  fast  빨라짐(≫ 모양): 그 목숨이 끝날 때까지 모든 공이 FAST_SCALE배 빨라진다.
+  //  bomb  폭탄(폭탄 모양): 둘레 여덟 칸을 한꺼번에 깬다. 그 안의 효과 벽돌도 효과가 나고, 폭탄이면 이어서 터진다.
+  EFFECTS: {
+    gold: { color: '#ffc94d', count: 2 },
+    row: { color: '#dfe7f5', count: 1 },   // 은백색
+    col: { color: '#dfe7f5', count: 1 },   // 은백색
+    fast: { color: '#b4ff4d', count: 1 },  // 라임
+    bomb: { color: '#ff4238', count: 1 }   // 빨강
+  },
+  FAST_SCALE: 1.35,
+  PADDLE: { w: 36, h: 5, y: 238 },
+  BALL_R: 2.6,
+  // 막대 이동: 초당 단위, 속도가 붙는 시간(초), 벽과 띄울 거리
+  SPEED: 128, RAMP: 0.07, MARGIN: 3,
+  LIVES: 3,
+  // 공: 초당 단위, 발사 각도(수직에서 왼쪽으로), 막대에서 튕길 때 가장 기우는 각도
+  BALL_SPEED: 140, LAUNCH_DEG: 45, BOUNCE_DEG: 60,
+  // 비스듬한 면에서 튕긴 공이 수평에서 이 각도보다 눕지 않게 한다(벽 사이만 오가지 않게)
+  MIN_DEG: 15,
+
+  // 직각삼각형 벽돌: 판마다 SHAPE_MIN~SHAPE_MAX칸, 자리와 방향 모두 무작위.
+  // shape는 직각이 있는 모서리(bl 왼아래, br 오른아래, tl 왼위, tr 오른위)이고, 빗변은 그 반대쪽을 향한다.
+  SHAPE_MIN: 2, SHAPE_MAX: 6,
+  SHAPE_KINDS: ['bl', 'br', 'tl', 'tr'],
+  stageIndex: function (stage) {
+    var n = this.LAYOUTS.length;
+    return (((stage || 1) - 1) % n + n) % n;
+  },
+  layoutOf: function (stage) { return this.LAYOUTS[this.stageIndex(stage)]; },
+  // 삼각형 벽돌의 세 꼭짓점(직각 꼭짓점이 가운데)
+  triPoints: function (q) {
+    var x0 = q.x, x1 = q.x + q.w, y0 = q.y, y1 = q.y + q.h;
+    switch (q.shape) {
+      case 'bl': return [[x0, y0], [x0, y1], [x1, y1]];
+      case 'br': return [[x1, y0], [x1, y1], [x0, y1]];
+      case 'tl': return [[x0, y1], [x0, y0], [x1, y0]];
+      case 'tr': return [[x0, y0], [x1, y0], [x1, y1]];
+    }
+    return null;
+  },
+  // 점에서 가장 가까운 삼각형 위의 점(안에 있으면 그 점 그대로)
+  closestOnTri: function (t, x, y) {
+    function cross(a, b, px, py) { return (b[0] - a[0]) * (py - a[1]) - (b[1] - a[1]) * (px - a[0]); }
+    var c1 = cross(t[0], t[1], x, y), c2 = cross(t[1], t[2], x, y), c3 = cross(t[2], t[0], x, y);
+    if ((c1 >= 0 && c2 >= 0 && c3 >= 0) || (c1 <= 0 && c2 <= 0 && c3 <= 0)) return { x: x, y: y, inside: true };
+    var best = null, bd = Infinity;
+    for (var i = 0; i < 3; i++) {
+      var a = t[i], b = t[(i + 1) % 3], ex = b[0] - a[0], ey = b[1] - a[1];
+      var u = ((x - a[0]) * ex + (y - a[1]) * ey) / (ex * ex + ey * ey);
+      u = Math.max(0, Math.min(1, u));
+      var cx = a[0] + ex * u, cy = a[1] + ey * u, d = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+      if (d < bd) { bd = d; best = { x: cx, y: cy, inside: false }; }
+    }
+    return best;
+  },
+  // 빗변의 바깥쪽 단위 법선(공이 삼각형 안으로 파고들었을 때 쓴다)
+  hypNormal: function (q) {
+    var t = this.triPoints(q), a = t[0], b = t[2], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    var nx = mx - t[1][0], ny = my - t[1][1], l = Math.sqrt(nx * nx + ny * ny);
+    return { x: nx / l, y: ny / l };
+  },
+  // 남은 벽돌이 없으면 스테이지 클리어
+  cleared: function (bricks) {
+    for (var i = 0; i < bricks.length; i++) if (bricks[i].hp > 0) return false;
+    return true;
+  },
+  makeBricks: function (stage) {
+    var layout = this.layoutOf(stage);
+    var left = (this.W - (this.COLS * this.BW + (this.COLS - 1) * this.GAP)) / 2;
+    var list = [];
+    for (var r = 0; r < this.ROWS; r++) {
+      for (var c = 0; c < this.COLS; c++) {
+        list.push({
+          row: r, col: c,
+          x: left + c * (this.BW + this.GAP),
+          y: this.TOP + r * (this.BH + this.GAP),
+          w: this.BW, h: this.BH,
+          hp: layout[r][c],
+          shape: null
+        });
+      }
+    }
+    return list;
+  },
+  // 줄 효과: q와 같은 가로줄(row) 또는 세로줄(col)의 남은 일반 벽돌 숫자를 1씩 줄인다.
+  // 효과 벽돌과 q 자신은 건드리지 않는다. 숫자가 준 벽돌(hit)과 그중 0이 된 벽돌(broken)을 돌려준다.
+  lineHit: function (bricks, q, axis) {
+    var hit = [], broken = [];
+    for (var i = 0; i < bricks.length; i++) {
+      var n = bricks[i];
+      if (n === q || n.kind || n.hp <= 0) continue;
+      if (axis === 'row' ? n.row !== q.row : n.col !== q.col) continue;
+      n.hp -= 1;
+      hit.push(n);
+      if (n.hp <= 0) broken.push(n);
+    }
+    return { hit: hit, broken: broken };
+  },
+  // 폭탄이 터질 때: 둘레 여덟 칸 중 남은 벽돌을 숫자와 상관없이 깨고(hp 0), 깬 벽돌들을 돌려준다.
+  // 연쇄는 부르는 쪽이 돌려받은 벽돌 중 폭탄을 다시 터뜨려 처리한다.
+  blast: function (bricks, q) {
+    var out = [];
+    for (var dr = -1; dr <= 1; dr++) {
+      for (var dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        var r = q.row + dr, c = q.col + dc;
+        if (r < 0 || r >= this.ROWS || c < 0 || c >= this.COLS) continue;
+        var n = bricks[r * this.COLS + c];
+        if (n && n.hp > 0) { n.hp = 0; out.push(n); }
+      }
+    }
+    return out;
+  },
+  // 무작위 칸을 직각삼각형으로 바꾼다. rand는 0 이상 1 미만을 돌려주는 함수.
+  placeShapes: function (bricks, rand) {
+    var idx = this.shuffled(bricks.length, rand);
+    var count = this.SHAPE_MIN + Math.floor(rand() * (this.SHAPE_MAX - this.SHAPE_MIN + 1));
+    for (var i = 0; i < count && i < idx.length; i++) {
+      bricks[idx[i]].shape = this.SHAPE_KINDS[Math.floor(rand() * this.SHAPE_KINDS.length)];
+    }
+    return bricks;
+  },
+  // 한 스테이지의 벽돌: 배치 → 삼각형 자리 → 효과 자리(네모 칸에만)
+  buildStage: function (stage, rand) {
+    return this.placeEffects(this.placeShapes(this.makeBricks(stage), rand), rand);
+  },
+  shuffled: function (n, rand) {
+    var idx = [];
+    for (var i = 0; i < n; i++) idx.push(i);
+    for (var j = n - 1; j > 0; j--) {
+      var k = Math.floor(rand() * (j + 1));
+      var t = idx[j]; idx[j] = idx[k]; idx[k] = t;
+    }
+    return idx;
+  },
+  colorOf: function (hp, kind) { return kind ? this.EFFECTS[kind].color : this.COLORS[hp]; },
+  // 벽돌 목록에 효과를 무작위로 나눠 준다(서로 다른 자리). rand는 0 이상 1 미만을 돌려주는 함수.
+  placeEffects: function (bricks, rand) {
+    var idx = this.shuffled(bricks.length, rand).filter(function (i) { return !bricks[i].shape; });   // 효과는 네모 벽돌에만
+    var at = 0;
+    for (var kind in this.EFFECTS) {
+      for (var c = 0; c < this.EFFECTS[kind].count && at < idx.length; c++) {
+        var q = bricks[idx[at++]];
+        q.kind = kind;
+        q.hp = 1;   // 효과 벽돌은 한 방에 깨진다
+      }
+    }
+    return bricks;
+  },
+  paddle: function () {
+    var p = this.PADDLE;
+    return { x: (this.W - p.w) / 2, y: p.y, w: p.w, h: p.h };
+  },
+  // 발사 전 공은 막대 가운데 위에 얹혀 있다(state: rest).
+  ball: function (paddle) {
+    return { x: paddle.x + paddle.w / 2, y: paddle.y - this.BALL_R - 0.6, r: this.BALL_R, vx: 0, vy: 0, state: 'rest' };
+  },
+  // 황금 벽돌로 생긴 공: 막대 가운데에서 DROP_H만큼 위에 나타나 똑바로 떨어진다
+  DROP_H: 40,
+  dropBall: function (paddle, speed) {
+    return { x: paddle.x + paddle.w / 2, y: paddle.y - this.DROP_H, r: this.BALL_R, vx: 0, vy: speed || this.BALL_SPEED, state: 'fly' };
+  },
+  // 방향은 그대로 두고 빠르기만 바꾼다
+  setSpeed: function (b, speed) {
+    var sp = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+    if (!sp) return b;
+    var o = {};
+    for (var k in b) o[k] = b[k];
+    o.vx = b.vx / sp * speed;
+    o.vy = b.vy / sp * speed;
+    return o;
+  },
+  // 스페이스바: 왼쪽 대각선 위로 날린다
+  launch: function (b, speed) {
+    var a = this.LAUNCH_DEG * Math.PI / 180, sp = speed || this.BALL_SPEED;
+    return { x: b.x, y: b.y, r: b.r, vx: -sp * Math.sin(a), vy: -sp * Math.cos(a), state: 'fly' };
+  },
+  // 날아가는 공 한 걸음. 위·왼쪽·오른쪽 벽, 벽돌, 막대 윗면에서 튕기고, 바닥 밖으로 나가면 사라진다(state: gone).
+  // 벽돌에 맞으면 그 벽돌의 hp를 직접 1 줄이고(0이면 사라진 벽돌), 맞힌 횟수를 hits로 돌려준다.
+  // 빠르게 움직여도 벽, 벽돌, 막대를 뚫지 않게 한 번에 1.5단위 이하로 나눠 움직인다.
+  stepBall: function (b, paddle, dt, bricks) {
+    if (b.state !== 'fly') return b;
+    dt = Math.min(Math.max(dt || 0, 0), 0.05);
+    // walls: 벽에 튕긴 횟수, paddle: 막대에 튕겼으면 true (효과음에 쓴다)
+    var x = b.x, y = b.y, vx = b.vx, vy = b.vy, r = b.r, hits = 0, broken = [], walls = 0, onPaddle = false, hitHp = 0;
+    var n = Math.max(1, Math.ceil(Math.sqrt(vx * vx + vy * vy) * dt / 1.5)), h = dt / n;
+    for (var i = 0; i < n; i++) {
+      var px = x, py = y, prevBottom = y + r;
+      x += vx * h;
+      y += vy * h;
+      if (x - r < 0) { x = r; vx = Math.abs(vx); walls++; }
+      if (x + r > this.W) { x = this.W - r; vx = -Math.abs(vx); walls++; }
+      if (y - r < 0) { y = r; vy = Math.abs(vy); walls++; }
+      var hit = this.hitBrick(x, y, vx, vy, r, bricks);
+      if (hit) {
+        hit.brick.hp -= 1;
+        hitHp = hit.brick.hp;
+        hits++;
+        if (hit.brick.hp <= 0) broken.push(hit.brick);
+        if (hit.axis === 'x') vx = -vx;
+        else if (hit.axis === 'y') vy = -vy;
+        else {
+          // 삼각형: 맞은 면의 법선으로 반사하고, 너무 눕지 않게 위아래 성분을 조금 남긴다
+          var dot = vx * hit.nx + vy * hit.ny, spd = Math.sqrt(vx * vx + vy * vy);
+          vx -= 2 * dot * hit.nx;
+          vy -= 2 * dot * hit.ny;
+          var minVy = spd * Math.sin(this.MIN_DEG * Math.PI / 180);
+          if (Math.abs(vy) < minVy) {
+            vy = (vy < 0 || (vy === 0 && hit.ny < 0)) ? -minVy : minVy;
+            vx = (vx < 0 ? -1 : 1) * Math.sqrt(spd * spd - vy * vy);
+          }
+        }
+        x = px; y = py;                // 겹치기 전 자리로 되돌려 한 번만 맞게 한다
+      }
+      // 막대 윗면에 위에서 내려와 닿았을 때만 튕긴다. 맞은 자리에 따라 기울기가 달라진다(가운데는 똑바로 위).
+      if (vy > 0 && prevBottom <= paddle.y && y + r >= paddle.y &&
+          x >= paddle.x - r && x <= paddle.x + paddle.w + r) {
+        var off = (x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+        off = Math.max(-1, Math.min(1, off));
+        var a = off * this.BOUNCE_DEG * Math.PI / 180;
+        var sp = Math.sqrt(vx * vx + vy * vy);
+        vx = sp * Math.sin(a);
+        vy = -sp * Math.cos(a);
+        y = paddle.y - r;
+        onPaddle = true;
+      }
+      if (y - r > this.H) return { x: x, y: y, r: r, vx: vx, vy: vy, state: 'gone', hits: hits, broken: broken, walls: walls, paddle: onPaddle, hitHp: hitHp };
+    }
+    return { x: x, y: y, r: r, vx: vx, vy: vy, state: 'fly', hits: hits, broken: broken, walls: walls, paddle: onPaddle, hitHp: hitHp };
+  },
+  // 공과 겹친 살아 있는 벽돌 중 가장 가까운 것, 그리고 튕길 축(x: 옆면, y: 윗면·아랫면, n: 삼각형 면의 법선 nx·ny).
+  // 공이 그 벽돌 쪽으로 다가가는 중일 때만 맞은 것으로 친다.
+  hitBrick: function (x, y, vx, vy, r, bricks) {
+    if (!bricks) return null;
+    var best = null, bestD = r * r;
+    for (var k = 0; k < bricks.length; k++) {
+      var q = bricks[k];
+      if (q.hp <= 0) continue;
+      if (q.shape) {
+        var cp = this.closestOnTri(this.triPoints(q), x, y);
+        var tx = x - cp.x, ty = y - cp.y, td = tx * tx + ty * ty;
+        if (td >= bestD) continue;
+        var nx, ny;
+        if (cp.inside || td === 0) { var hn = this.hypNormal(q); nx = hn.x; ny = hn.y; }
+        else { var tl = Math.sqrt(td); nx = tx / tl; ny = ty / tl; }
+        if (vx * nx + vy * ny >= 0) continue;   // 멀어지는 중이면 맞은 게 아니다
+        best = { brick: q, axis: 'n', nx: nx, ny: ny };
+        bestD = td;
+        continue;
+      }
+      var cx = Math.max(q.x, Math.min(x, q.x + q.w));
+      var cy = Math.max(q.y, Math.min(y, q.y + q.h));
+      var dx = x - cx, dy = y - cy, d = dx * dx + dy * dy;
+      if (d >= bestD) continue;
+      var axis = null;
+      if (dx === 0 && dy === 0) axis = 'y';
+      else {
+        var toX = vx * dx < 0, toY = vy * dy < 0;
+        if (Math.abs(dx) > Math.abs(dy)) axis = toX ? 'x' : (toY ? 'y' : null);
+        else axis = toY ? 'y' : (toX ? 'x' : null);
+      }
+      if (!axis) continue;
+      best = { brick: q, axis: axis };
+      bestD = d;
+    }
+    return best;
+  },
+  // 막대 왼쪽 끝이 갈 수 있는 범위. w는 지금 막대 길이(넓어졌을 수 있다).
+  paddleRange: function (w) {
+    w = w || this.PADDLE.w;
+    return { min: this.MARGIN, max: this.W - w - this.MARGIN };
+  },
+  clampPaddle: function (x, w) {
+    var r = this.paddleRange(w);
+    if (!(x >= r.min)) return r.min;   // NaN도 여기서 막는다
+    return x > r.max ? r.max : x;
+  },
+  // dir: -1 왼쪽, 0 멈춤, 1 오른쪽. 누르면 짧게 속도가 붙고, 떼면 바로 선다.
+  stepPaddle: function (x, v, dir, dt, w) {
+    dt = Math.min(Math.max(dt || 0, 0), 0.05);
+    if (!dir) return { x: this.clampPaddle(x, w), v: 0 };
+    var target = dir * this.SPEED;
+    v += (target - v) * (1 - Math.exp(-dt / this.RAMP));
+    var nx = this.clampPaddle(x + v * dt, w);
+    if (nx !== x + v * dt) v = 0;      // 벽에 닿으면 속도를 버린다
+    return { x: nx, v: v };
+  },
+  // 여섯 자리. 앞의 0(lead)과 실제 숫자(value)를 나눠 돌려준다.
+  scoreParts: function (n) {
+    var v = String(Math.max(0, Math.floor(n)));
+    var s = v;
+    while (s.length < 6) s = '0' + s;
+    var lead = s.length - v.length;
+    return { lead: s.slice(0, lead), value: s.slice(lead) };
+  }
+};
+if (typeof module !== 'undefined') module.exports = Brick;
+</script>
+
+<script>
+(function () {
+  var canvas = document.getElementById('field');
+  var ctx = canvas.getContext('2d');
+  var scoreEl = document.getElementById('score');
+  var BG = '#060a12';
+
+  var livesEl = document.getElementById('lives');
+  var STAR = 'M12 2.8l2.75 5.57 6.15.9-4.45 4.33 1.05 6.12L12 16.83l-5.5 2.89 1.05-6.12L3.1 9.27l6.15-.9z';
+
+  var overEl = document.getElementById('over');
+  var retryBtn = document.getElementById('retry');
+  var clearEl = document.getElementById('clear');
+  var clearTitle = document.getElementById('clear-title');
+  var nextBtn = document.getElementById('next');
+  var soundBtn = document.getElementById('sound');
+
+  // 효과음: 모두 Web Audio로 합성한다. 첫 키 입력이나 터치 때 소리 장치를 연다.
+  var Sfx = (function () {
+    var ac = null, master = null, on = true, lastWall = 0;
+    try { on = localStorage.getItem('hooni-brick-sound') !== '0'; } catch (e) {}
+    function ready() {
+      if (!on) return null;
+      if (!ac) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        try { ac = new AC(); } catch (e) { return null; }
+        master = ac.createGain();
+        master.gain.value = 0.5;
+        master.connect(ac.destination);
+      }
+      if (ac.state === 'suspended') ac.resume();
+      return ac;
+    }
+    // 음 하나: f0에서 f1로 미끄러지며 dur초 동안 사라진다
+    function tone(f0, f1, dur, type, vol, delay) {
+      var a = ready();
+      if (!a) return;
+      var t = a.currentTime + (delay || 0);
+      var o = a.createOscillator(), g = a.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(f0, t);
+      if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g);
+      g.connect(master);
+      o.start(t);
+      o.stop(t + dur + 0.02);
+    }
+    // 짧은 잡음: 유리 부스러지는 소리의 바탕
+    function crackle(dur, freq, vol) {
+      var a = ready();
+      if (!a) return;
+      var t = a.currentTime, n = Math.floor(a.sampleRate * dur);
+      var buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
+      var src = a.createBufferSource(), bp = a.createBiquadFilter(), g = a.createGain();
+      src.buffer = buf;
+      bp.type = 'bandpass';
+      bp.frequency.value = freq;
+      bp.Q.value = 1.2;
+      g.gain.value = vol;
+      src.connect(bp);
+      bp.connect(g);
+      g.connect(master);
+      src.start(t);
+    }
+    return {
+      unlock: function () { ready(); },
+      isOn: function () { return on; },
+      setOn: function (v) {
+        on = v;
+        try { localStorage.setItem('hooni-brick-sound', v ? '1' : '0'); } catch (e) {}
+        if (!v && ac) ac.suspend();
+      },
+      launch: function () { tone(520, 900, 0.09, 'sine', 0.18); },
+      wall: function () {
+        var now = Date.now();
+        if (now - lastWall < 45) return;
+        lastWall = now;
+        tone(340, 300, 0.04, 'triangle', 0.07);
+      },
+      paddle: function () { tone(300, 220, 0.09, 'sine', 0.25); tone(600, 600, 0.05, 'triangle', 0.06); },
+      // 숫자가 줄 때: 남은 숫자가 작을수록 높은 소리
+      hit: function (hp) { tone(1500 - hp * 180, 1400 - hp * 180, 0.11, 'sine', 0.13); },
+      // 깨질 때: 짧은 바사삭과 맑은 소리
+      brk: function () { crackle(0.09, 5200, 0.35); tone(1760, 1600, 0.12, 'sine', 0.1); },
+      gold: function () { tone(1320, 1320, 0.1, 'sine', 0.13); tone(1760, 1760, 0.16, 'sine', 0.13, 0.07); },
+      // 줄 효과: 빠르게 훑고 지나가는 소리
+      line: function () { tone(2200, 700, 0.18, 'triangle', 0.1); crackle(0.12, 6000, 0.18); },
+      // 펑: 낮게 떨어지는 소리와 굵은 잡음
+      boom: function () { crackle(0.32, 700, 0.6); crackle(0.12, 2400, 0.25); tone(160, 45, 0.4, 'sine', 0.45); },
+      fast: function () { tone(500, 1500, 0.16, 'sawtooth', 0.05); tone(750, 2000, 0.16, 'sine', 0.08, 0.04); },
+      lose: function () { tone(440, 170, 0.38, 'triangle', 0.18); },
+      over: function () { [392, 330, 262].forEach(function (f, i) { tone(f, f * 0.98, 0.26, 'triangle', 0.16, i * 0.17); }); },
+      clear: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, f, 0.22, 'sine', 0.15, i * 0.09); }); },
+      click: function () { tone(880, 880, 0.04, 'sine', 0.1); }
+    };
+  })();
+  soundBtn.setAttribute('aria-pressed', String(Sfx.isOn()));
+  soundBtn.addEventListener('click', function () {
+    Sfx.setOn(!Sfx.isOn());
+    soundBtn.setAttribute('aria-pressed', String(Sfx.isOn()));
+    Sfx.click();
+    soundBtn.blur();   // 스페이스바가 버튼을 다시 누르지 않게
+  });
+  window.addEventListener('pointerdown', function () { Sfx.unlock(); });
+
+  // 한 판의 처음 상태. 다시 하기도 이것으로 새로 시작한다.
+  function newState() {
+    var st = {
+      score: 0,
+      lives: Brick.LIVES,
+      fx: [],
+      shake: null,
+      over: false,
+      clear: false,     // 스테이지 클리어 화면을 띄운 동안
+      stage: 1,
+      fast: false,      // 빨라짐: 이번 목숨이 끝날 때까지
+      bricks: Brick.buildStage(1, Math.random),
+      paddle: Brick.paddle()
+    };
+    // 공은 여러 개일 수 있다. 각 공은 꼬리(trail)를 따로 가진다.
+    st.balls = [{ b: Brick.ball(st.paddle), trail: [] }];
+    return st;
+  }
+  var state = newState();
+
+  var s = 2, dpr = 1;
+
+  function rgba(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  function mix(hex, to, t) {
+    var a = parseInt(hex.slice(1), 16), b = parseInt(to.slice(1), 16);
+    var ch = function (sh) { return Math.round(((a >> sh) & 255) * (1 - t) + ((b >> sh) & 255) * t); };
+    return 'rgb(' + ch(16) + ',' + ch(8) + ',' + ch(0) + ')';
+  }
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  // 화면에서 1px 두께가 되는 선
+  function hair() { return 1 / s; }
+
+  function drawGround() {
+    var W = Brick.W, H = Brick.H;
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, W, H);
+    var glowTop = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, H * 0.75);
+    glowTop.addColorStop(0, 'rgba(80, 120, 255, .13)');
+    glowTop.addColorStop(1, 'rgba(80, 120, 255, 0)');
+    ctx.fillStyle = glowTop;
+    ctx.fillRect(0, 0, W, H);
+
+    // 모눈: 10칸마다 옅게, 50칸마다 조금 진하게
+    ctx.lineWidth = hair();
+    for (var x = 10; x < W; x += 10) {
+      ctx.strokeStyle = x % 50 === 0 ? 'rgba(143,180,255,.08)' : 'rgba(143,180,255,.035)';
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (var y = 10; y < H; y += 10) {
+      ctx.strokeStyle = y % 50 === 0 ? 'rgba(143,180,255,.08)' : 'rgba(143,180,255,.035)';
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+    // 아래로 갈수록 어둡게
+    var fade = ctx.createLinearGradient(0, H * 0.45, 0, H);
+    fade.addColorStop(0, 'rgba(6,10,18,0)');
+    fade.addColorStop(1, 'rgba(6,10,18,.7)');
+    ctx.fillStyle = fade;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawFrame() {
+    var W = Brick.W, H = Brick.H, h = hair();
+    ctx.lineWidth = h;
+    ctx.strokeStyle = 'rgba(143,180,255,.16)';
+    ctx.strokeRect(h / 2, h / 2, W - h, H - h);
+
+    // 양옆 눈금
+    ctx.strokeStyle = 'rgba(143,180,255,.28)';
+    for (var y = 10; y < H; y += 10) {
+      var len = y % 50 === 0 ? 3 : 1.5;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(len, y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W, y); ctx.lineTo(W - len, y); ctx.stroke();
+    }
+
+    // 네 모서리 꺾쇠
+    var L = 8;
+    ctx.lineWidth = 2 / s;
+    ctx.strokeStyle = 'rgba(190,212,255,.75)';
+    [[0, 0, 1, 1], [W, 0, -1, 1], [0, H, 1, -1], [W, H, -1, -1]].forEach(function (c) {
+      var x = c[0] + c[2] * h, y = c[1] + c[3] * h;
+      ctx.beginPath();
+      ctx.moveTo(x, y + c[3] * L);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x + c[2] * L, y);
+      ctx.stroke();
+    });
+  }
+
+  // 벽돌 윤곽: 네모는 둥근 모서리, 삼각형은 살짝 둥근 세 꼭짓점. k는 무게중심 기준 크기 비율.
+  function brickPath(q, k) {
+    k = k || 1;
+    if (!q.shape) {
+      var w = q.w * k, h = q.h * k;
+      rr(q.x + (q.w - w) / 2, q.y + (q.h - h) / 2, w, h, 2);
+      return;
+    }
+    var t = Brick.triPoints(q);
+    var gx = (t[0][0] + t[1][0] + t[2][0]) / 3, gy = (t[0][1] + t[1][1] + t[2][1]) / 3;
+    var pts = t.map(function (v) { return [gx + (v[0] - gx) * k, gy + (v[1] - gy) * k]; });
+    ctx.beginPath();
+    ctx.moveTo((pts[2][0] + pts[0][0]) / 2, (pts[2][1] + pts[0][1]) / 2);
+    for (var i = 0; i < 3; i++) ctx.arcTo(pts[i][0], pts[i][1], pts[(i + 1) % 3][0], pts[(i + 1) % 3][1], 1.2);
+    ctx.closePath();
+  }
+  function centroid(q) {
+    if (!q.shape) return { x: q.x + q.w / 2, y: q.y + q.h / 2 };
+    var t = Brick.triPoints(q);
+    return { x: (t[0][0] + t[1][0] + t[2][0]) / 3, y: (t[0][1] + t[1][1] + t[2][1]) / 3 };
+  }
+
+  function drawBrick(b) {
+    if (b.hp <= 0) return;
+    var c = Brick.colorOf(b.hp, b.kind);
+    // 은은한 빛
+    ctx.save();
+    ctx.shadowColor = rgba(c, .45);
+    ctx.shadowBlur = 10 * dpr;
+    brickPath(b);
+    var body = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
+    // 효과 벽돌은 몸통을 더 밝게 채워 일반 벽돌과 구별한다
+    body.addColorStop(0, mix(c, BG, b.kind ? .45 : .68));
+    body.addColorStop(1, mix(c, BG, b.kind ? .72 : .86));
+    ctx.fillStyle = body;
+    ctx.fill();
+    ctx.restore();
+
+    brickPath(b);
+    ctx.lineWidth = hair();
+    ctx.strokeStyle = rgba(c, .9);
+    ctx.stroke();
+
+    // 위쪽 반사광(윗변이 있는 모양만)
+    if (!b.shape || b.shape === 'tl' || b.shape === 'tr') {
+      var sheen = ctx.createLinearGradient(b.x, 0, b.x + b.w, 0);
+      sheen.addColorStop(0, 'rgba(255,255,255,0)');
+      sheen.addColorStop(.5, 'rgba(255,255,255,.35)');
+      sheen.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = sheen;
+      ctx.fillRect(b.x + 2, b.y + hair() * 1.5, b.w - 4, hair());
+    }
+
+    // 일반 벽돌은 숫자(삼각형은 무게중심에 조금 작게), 효과 벽돌은 표시
+    var g = centroid(b), mx = g.x, my = g.y, ink = mix(c, '#ffffff', .55);
+    ctx.save();
+    ctx.shadowColor = rgba(c, .9);
+    ctx.shadowBlur = 6 * dpr;
+    ctx.fillStyle = ink;
+    ctx.strokeStyle = ink;
+    if (b.kind === 'row') drawArrowMark(mx, my, false);
+    else if (b.kind === 'col') drawArrowMark(mx, my, true);
+    else if (b.kind === 'gold') drawBallMark(mx, my);
+    else if (b.kind === 'fast') drawFastMark(mx, my);
+    else if (b.kind === 'bomb') drawBombMark(mx, my);
+    else {
+      ctx.font = (b.shape ? '600 6.6px' : '600 8.4px') + ' "Chakra Petch", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(b.hp), mx, my + 0.4);
+    }
+    ctx.restore();
+  }
+  // ↔ / ↕: 양쪽 화살표(세로면 90° 돌린다)
+  function drawArrowMark(x, y, vertical) {
+    var half = vertical ? 4.4 : 5.6, head = 2;
+    ctx.save();
+    ctx.translate(x, y);
+    if (vertical) ctx.rotate(Math.PI / 2);
+    ctx.lineWidth = 1.1;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-half, 0); ctx.lineTo(half, 0);
+    ctx.moveTo(-half + head, -head); ctx.lineTo(-half, 0); ctx.lineTo(-half + head, head);
+    ctx.moveTo(half - head, -head); ctx.lineTo(half, 0); ctx.lineTo(half - head, head);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // 폭탄: 둥근 몸통, 짧은 심지, 불꽃 점
+  function drawBombMark(x, y) {
+    ctx.beginPath();
+    ctx.arc(x - 0.6, y + 0.8, 2.9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 0.9;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x + 1.3, y - 1.3);
+    ctx.quadraticCurveTo(x + 2.2, y - 3.4, x + 3.6, y - 3.6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x + 4.1, y - 3.9, 0.75, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // ≫: 겹친 두 꺾쇠
+  function drawFastMark(x, y) {
+    ctx.lineWidth = 1.2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    [-2.6, 1.4].forEach(function (dx) {
+      ctx.moveTo(x + dx - 1.6, y - 3.2);
+      ctx.lineTo(x + dx + 1.6, y);
+      ctx.lineTo(x + dx - 1.6, y + 3.2);
+    });
+    ctx.stroke();
+  }
+  // 공 모양: 게임 속 공처럼 알맹이와 고리
+  function drawBallMark(x, y) {
+    ctx.beginPath();
+    ctx.arc(x, y, 1.9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.arc(x, y, 3.6, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  function drawPaddle(p) {
+    var r = p.h / 2, cx = p.x + p.w / 2, h = hair();
+
+    // 바닥에 비친 빛
+    ctx.save();
+    ctx.translate(cx, p.y + p.h + 3);
+    ctx.scale(1, 0.22);
+    var pool = ctx.createRadialGradient(0, 0, 0, 0, 0, p.w * 0.75);
+    pool.addColorStop(0, 'rgba(79,216,255,.22)');
+    pool.addColorStop(1, 'rgba(79,216,255,0)');
+    ctx.fillStyle = pool;
+    ctx.beginPath();
+    ctx.arc(0, 0, p.w * 0.75, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 어두운 유리 몸통, 아래로 떨어지는 그림자
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.6)';
+    ctx.shadowOffsetY = 2 * s * dpr;
+    ctx.shadowBlur = 6 * dpr;
+    rr(p.x, p.y, p.w, p.h, r);
+    var body = ctx.createLinearGradient(0, p.y, 0, p.y + p.h);
+    body.addColorStop(0, '#24304a');
+    body.addColorStop(1, '#0d1322');
+    ctx.fillStyle = body;
+    ctx.fill();
+    ctx.restore();
+    rr(p.x + h / 2, p.y + h / 2, p.w - h, p.h - h, r);
+    ctx.lineWidth = h;
+    ctx.strokeStyle = 'rgba(190,212,255,.45)';
+    ctx.stroke();
+
+    // 윗변 빛줄
+    ctx.save();
+    ctx.shadowColor = 'rgba(79,216,255,.9)';
+    ctx.shadowBlur = 8 * dpr;
+    var edge = ctx.createLinearGradient(p.x, 0, p.x + p.w, 0);
+    edge.addColorStop(0, 'rgba(234,246,255,0)');
+    edge.addColorStop(.18, 'rgba(234,246,255,.95)');
+    edge.addColorStop(.82, 'rgba(234,246,255,.95)');
+    edge.addColorStop(1, 'rgba(234,246,255,0)');
+    ctx.fillStyle = edge;
+    ctx.fillRect(p.x + 2, p.y + h, p.w - 4, 0.7);
+    ctx.restore();
+
+    // 양 끝 표시등과 가운데 눈금
+    ctx.fillStyle = 'rgba(79,216,255,.85)';
+    ctx.fillRect(p.x + 2.4, p.y + p.h / 2 - 0.3, 2.2, 0.6);
+    ctx.fillRect(p.x + p.w - 4.6, p.y + p.h / 2 - 0.3, 2.2, 0.6);
+    ctx.fillStyle = 'rgba(190,212,255,.5)';
+    ctx.fillRect(cx - h / 2, p.y + p.h * 0.45, h, p.h * 0.4);
+  }
+
+  // 공의 고리와 꼬리 색: 빨라진 동안엔 라임
+  function ballTint() { return state.fast ? '180,255,77' : '79,216,255'; }
+  function drawTrail(trail) {
+    ctx.lineCap = 'round';
+    for (var i = 1; i < trail.length; i++) {
+      var t = i / trail.length;
+      ctx.strokeStyle = 'rgba(' + ballTint() + ',' + (t * 0.45).toFixed(3) + ')';
+      ctx.lineWidth = Brick.BALL_R * 1.4 * t;
+      ctx.beginPath();
+      ctx.moveTo(trail[i - 1].x, trail[i - 1].y);
+      ctx.lineTo(trail[i].x, trail[i].y);
+      ctx.stroke();
+    }
+  }
+
+  function drawBall(b) {
+    if (b.state === 'gone') return;
+    var h = hair(), ring = b.r + 2.2, resting = b.state === 'rest';
+
+    // 추적 고리와 눈금. 막대에 얹혀 있을 땐 닿는 아래쪽을 비운다.
+    ctx.lineWidth = h;
+    ctx.strokeStyle = 'rgba(' + ballTint() + ',.4)';
+    ctx.beginPath();
+    if (resting) ctx.arc(b.x, b.y, ring, Math.PI / 2 + 0.9, Math.PI * 2.5 - 0.9);
+    else ctx.arc(b.x, b.y, ring, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(' + ballTint() + ',.7)';
+    (resting ? [[0, -1], [1, 0], [-1, 0]] : [[0, -1], [1, 0], [0, 1], [-1, 0]]).forEach(function (d) {
+      ctx.beginPath();
+      ctx.moveTo(b.x + d[0] * (ring + 0.6), b.y + d[1] * (ring + 0.6));
+      ctx.lineTo(b.x + d[0] * (ring + 2), b.y + d[1] * (ring + 2));
+      ctx.stroke();
+    });
+
+    // 빛나는 알맹이
+    ctx.save();
+    ctx.shadowColor = 'rgba(160,230,255,1)';
+    ctx.shadowBlur = 10 * dpr;
+    var g = ctx.createRadialGradient(b.x - b.r * .35, b.y - b.r * .4, 0, b.x, b.y, b.r);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(.7, '#e6f6ff');
+    g.addColorStop(1, '#8fd3ff');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawScore() {
+    var parts = Brick.scoreParts(state.score);
+    scoreEl.innerHTML = '<span class="lead">' + parts.lead + '</span>' + parts.value;
+    scoreEl.setAttribute('aria-label', '점수 ' + state.score);
+  }
+
+  // 남은 목숨은 꽉 찬 별, 잃은 목숨은 빈 별
+  function drawLives() {
+    var html = '';
+    for (var i = 0; i < Brick.LIVES; i++) {
+      html += '<svg class="' + (i < state.lives ? 'on' : 'off') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + STAR + '"/></svg>';
+    }
+    livesEl.innerHTML = html;
+    livesEl.setAttribute('aria-label', '목숨 ' + state.lives);
+  }
+
+  // 바탕, 틀, 벽돌은 한 장에 미리 그려 두고 매 장면엔 막대와 공만 새로 그린다
+  var layer = document.createElement('canvas');
+  var mainCtx = ctx;
+  function renderLayer() {
+    layer.width = canvas.width;
+    layer.height = canvas.height;
+    ctx = layer.getContext('2d');
+    ctx.setTransform(s * dpr, 0, 0, s * dpr, 0, 0);
+    drawGround();
+    drawFrame();
+    state.bricks.forEach(drawBrick);
+    ctx = mainCtx;
+  }
+
+  function draw() {
+    // 폭탄이 터지면 화면이 잠깐 흔들린다
+    var ox = 0, oy = 0;
+    if (state.shake) {
+      var amp = 1.6 * (1 - state.shake.t / state.shake.life);
+      ox = (Math.random() * 2 - 1) * amp;
+      oy = (Math.random() * 2 - 1) * amp;
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(layer, ox * s * dpr, oy * s * dpr);
+    ctx.setTransform(s * dpr, 0, 0, s * dpr, ox * s * dpr, oy * s * dpr);
+    drawShimmer();
+    drawFx();
+    drawPaddle(state.paddle);
+    state.balls.forEach(function (o) { drawTrail(o.trail); drawBall(o.b); });
+  }
+
+  // 효과 벽돌: 비스듬한 빛이 몇 초마다 한 번 훑고 지나간다(동작 줄이기면 없음)
+  function effectsAlive() {
+    for (var i = 0; i < state.bricks.length; i++) {
+      if (state.bricks[i].kind && state.bricks[i].hp > 0) return true;
+    }
+    return false;
+  }
+  function drawShimmer() {
+    if (calm) return;
+    var now = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
+    state.bricks.forEach(function (q) {
+      if (!q.kind || q.hp <= 0) return;
+      var phase = ((now + q.col * 0.41 + q.row * 0.23) % 2.6) / 2.6;
+      if (phase > 0.4) return;
+      var bx = q.x - 6 + (phase / 0.4) * (q.w + 12);
+      ctx.save();
+      rr(q.x, q.y, q.w, q.h, 2);
+      ctx.clip();
+      ctx.translate(bx, q.y);
+      ctx.transform(1, 0, -0.55, 1, 0, 0);
+      var g = ctx.createLinearGradient(-3, 0, 3, 0);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(.5, 'rgba(255,255,255,.38)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(-3, 0, 6, q.h);
+      ctx.restore();
+    });
+  }
+
+  // 벽돌이 사라질 때: 벽돌 윤곽이 살짝 작아지며 스르르 꺼지고, 작은 조각 몇 개만 가볍게 떨어진다
+  var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // 줄 효과 연출: 벽돌에서 가로(또는 세로)로 은빛 빛줄기가 양 끝까지 뻗었다가 사라진다
+  function beam(q, axis) {
+    var g = centroid(q);
+    Sfx.line();
+    state.fx.push({ kind: 'beam', axis: axis, x: g.x, y: g.y, t: 0, life: 0.38 });
+  }
+  // 펑: 번쩍임, 퍼지는 충격파 고리, 사방으로 튀는 불티, 짧은 화면 흔들림
+  function explode(q) {
+    var g = centroid(q);
+    Sfx.boom();
+    state.fx.push({ kind: 'boom', x: g.x, y: g.y, t: 0, life: 0.45 });
+    if (calm) return;
+    state.shake = { t: 0, life: 0.28 };
+    for (var i = 0; i < 14; i++) {
+      var a = Math.random() * Math.PI * 2, sp = 50 + Math.random() * 70;
+      state.fx.push({ kind: 'spark', x: g.x, y: g.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, life: 0.3 + Math.random() * 0.2 });
+    }
+  }
+  function shatter(q, ball) {
+    var c = Brick.colorOf(1, q.kind);   // 깨지기 직전 모습의 색
+    state.fx.push({ kind: 'ghost', x: q.x, y: q.y, w: q.w, h: q.h, shape: q.shape, c: c, t: 0, life: 0.22 });
+    if (calm) return;
+    var sp = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy) || 1;
+    for (var i = 0; i < 6; i++) {
+      var cx = q.x + q.w * (0.15 + 0.7 * Math.random()), cy = q.y + q.h * (0.25 + 0.5 * Math.random());
+      var ox = (cx - (q.x + q.w / 2)) / (q.w / 2);
+      var pts = [], rad = 0.9 + Math.random() * 0.7;
+      for (var k = 0; k < 3; k++) {
+        var a = (k / 3) * Math.PI * 2 + Math.random() * 1.2;
+        pts.push([Math.cos(a) * rad, Math.sin(a) * rad]);
+      }
+      state.fx.push({
+        kind: 'shard', x: cx, y: cy, pts: pts, c: c, t: 0, life: 0.3 + Math.random() * 0.15,
+        vx: ox * 12 + (ball.vx / sp) * 8 + (Math.random() - 0.5) * 8,
+        vy: (ball.vy / sp) * 8 + (Math.random() - 0.5) * 8,
+        rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 6
+      });
+    }
+  }
+  function stepFx(dt) {
+    var g = 160;
+    if (state.shake) {
+      state.shake.t += dt;
+      if (state.shake.t >= state.shake.life) state.shake = null;
+    }
+    for (var i = state.fx.length - 1; i >= 0; i--) {
+      var f = state.fx[i];
+      f.t += dt;
+      if (f.t >= f.life) { state.fx.splice(i, 1); continue; }
+      if (f.kind === 'spark') {
+        f.vy += 60 * dt;
+        f.vx *= Math.exp(-3 * dt);
+        f.vy *= Math.exp(-3 * dt);
+        f.x += f.vx * dt;
+        f.y += f.vy * dt;
+      }
+      if (f.kind === 'shard') {
+        f.vy += g * dt;
+        f.vx *= Math.exp(-1.5 * dt);
+        f.x += f.vx * dt;
+        f.y += f.vy * dt;
+        f.rot += f.vr * dt;
+      }
+    }
+  }
+  function drawFx() {
+    state.fx.forEach(function (f) {
+      var k = f.t / f.life, fade = 1 - k;
+      if (f.kind === 'beam') {
+        var reach = calm ? 1 : 1 - Math.pow(1 - Math.min(1, k / 0.45), 3);
+        var hw = f.axis === 'row' ? Brick.W : Brick.H;
+        var len = hw * reach, thick = 2.2 * fade + hair();
+        ctx.save();
+        ctx.shadowColor = 'rgba(223,231,245,' + (0.9 * fade).toFixed(3) + ')';
+        ctx.shadowBlur = 8 * dpr;
+        ctx.fillStyle = 'rgba(240,245,255,' + (0.85 * fade).toFixed(3) + ')';
+        if (f.axis === 'row') ctx.fillRect(f.x - len, f.y - thick / 2, len * 2, thick);
+        else ctx.fillRect(f.x - thick / 2, f.y - len, thick, len * 2);
+        ctx.restore();
+        return;
+      }
+      if (f.kind === 'boom') {
+        if (k < 0.35) {
+          var fl = 1 - k / 0.35;
+          var glow = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 30);
+          glow.addColorStop(0, 'rgba(255,220,180,' + (0.6 * fl).toFixed(3) + ')');
+          glow.addColorStop(0.4, 'rgba(255,90,50,' + (0.35 * fl).toFixed(3) + ')');
+          glow.addColorStop(1, 'rgba(255,66,56,0)');
+          ctx.fillStyle = glow;
+          ctx.fillRect(f.x - 30, f.y - 30, 60, 60);
+        }
+        ctx.lineWidth = hair() + 1.4 * fade;
+        ctx.strokeStyle = 'rgba(255,110,70,' + (0.9 * fade).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, 5 + 32 * (1 - Math.pow(1 - k, 3)), 0, Math.PI * 2);
+        ctx.stroke();
+        return;
+      }
+      if (f.kind === 'spark') {
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 0.9;
+        ctx.strokeStyle = 'rgba(255,' + Math.round(150 + 80 * fade) + ',90,' + fade.toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.moveTo(f.x, f.y);
+        ctx.lineTo(f.x - f.vx * 0.03, f.y - f.vy * 0.03);
+        ctx.stroke();
+        return;
+      }
+      if (f.kind === 'appear') {
+        ctx.lineWidth = hair();
+        ctx.strokeStyle = 'rgba(255,201,77,' + (0.8 * fade).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, Brick.BALL_R + 2.2 + 8 * fade, 0, Math.PI * 2);
+        ctx.stroke();
+        return;
+      }
+      if (f.kind === 'ghost') {
+        brickPath(f, 1 - 0.08 * (1 - Math.pow(1 - k, 3)));
+        ctx.fillStyle = rgba(f.c, .14 * fade);
+        ctx.fill();
+        ctx.lineWidth = hair();
+        ctx.strokeStyle = rgba(f.c, .8 * fade);
+        ctx.stroke();
+        return;
+      }
+      ctx.save();
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.rot);
+      ctx.beginPath();
+      ctx.moveTo(f.pts[0][0], f.pts[0][1]);
+      for (var i = 1; i < f.pts.length; i++) ctx.lineTo(f.pts[i][0], f.pts[i][1]);
+      ctx.closePath();
+      ctx.fillStyle = rgba(f.c, .55 * fade);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  // 방향키를 누르고 있는 동안 막대가, 발사한 뒤에는 공이 움직인다
+  var held = { left: false, right: false };
+  var vel = 0, last = 0, raf = 0;
+  function dir() { return (held.right ? 1 : 0) - (held.left ? 1 : 0); }
+  function frame(t) {
+    var dt = last ? (t - last) / 1000 : 0;
+    last = t;
+    var p = state.paddle;
+    var step = Brick.stepPaddle(p.x, vel, dir(), dt, p.w);
+    p.x = step.x;
+    vel = step.v;
+
+    var changed = false, spawn = 0, speedUp = false;
+    state.balls.forEach(function (o) {
+      if (o.b.state === 'rest') { o.b = Brick.ball(p); return; }
+      if (o.b.state !== 'fly') return;
+      o.b = Brick.stepBall(o.b, p, dt, state.bricks);
+      // 벽돌에 맞을 때마다 숫자와 상관없이 1점
+      if (o.b.hits) {
+        state.score += o.b.hits;
+        changed = true;
+        if (o.b.broken.length < o.b.hits) Sfx.hit(o.b.hitHp);
+      }
+      if (o.b.walls) Sfx.wall();
+      if (o.b.paddle) Sfx.paddle();
+      // 깨진 벽돌을 차례로 처리한다. 폭탄이 깬 벽돌도 같은 줄에 넣어 그 효과까지 낸다.
+      var queue = o.b.broken.map(function (q) { return { q: q, blown: false }; });
+      while (queue.length) {
+        var it = queue.shift(), q = it.q;
+        shatter(q, o.b);
+        if (q.kind === 'gold') { spawn++; Sfx.gold(); }
+        else if (q.kind === 'row' || q.kind === 'col') {
+          // 줄 효과: 같은 줄의 일반 벽돌 숫자를 하나씩 줄이고, 0이 된 벽돌은 같은 줄(queue)에서 깨뜨린다
+          beam(q, q.kind);
+          var lh = Brick.lineHit(state.bricks, q, q.kind);
+          state.score += lh.hit.length;    // 숫자가 준 벽돌 하나에 1점
+          if (lh.hit.length) changed = true;
+          lh.broken.forEach(function (n) { queue.push({ q: n, blown: true }); });
+        }
+        else if (q.kind === 'fast') { if (!state.fast) { Sfx.fast(); speedUp = true; } state.fast = true; }
+        else if (q.kind !== 'bomb' && !it.blown) Sfx.brk();
+        if (q.kind === 'bomb') {
+          explode(q);
+          var blown = Brick.blast(state.bricks, q);
+          state.score += blown.length;     // 폭발로 깬 벽돌도 하나에 1점
+          if (blown.length) changed = true;
+          blown.forEach(function (n) { queue.push({ q: n, blown: true }); });
+        }
+      }
+      o.trail.push({ x: o.b.x, y: o.b.y });
+      if (o.trail.length > 9) o.trail.shift();
+    });
+    // 빨라짐 벽돌: 날고 있는 공을 모두 빠르게
+    if (speedUp) state.balls.forEach(function (o) { if (o.b.state === 'fly') o.b = Brick.setSpeed(o.b, ballSpeed()); });
+    // 황금 벽돌: 막대 조금 위에서 새 공이 나타나 떨어진다(나타나는 자리에 고리가 조여 든다)
+    for (var i = 0; i < spawn; i++) {
+      var nb = Brick.dropBall(p, ballSpeed());
+      state.balls.push({ b: nb, trail: [] });
+      state.fx.push({ kind: 'appear', x: nb.x, y: nb.y, t: 0, life: 0.25 });
+    }
+    if (changed) { drawScore(); renderLayer(); }
+    // 벽돌을 모두 깨면 스테이지 클리어
+    if (changed && !state.clear && !state.over && Brick.cleared(state.bricks)) stageClear();
+
+    // 바닥으로 빠진 공은 지운다. 공이 하나도 안 남았을 때만 목숨을 잃는다.
+    var had = state.balls.length;
+    state.balls = state.balls.filter(function (o) { return o.b.state !== 'gone'; });
+    if (had && !state.balls.length && !state.clear) {
+      state.lives = Math.max(0, state.lives - 1);
+      state.fast = false;   // 빨라짐은 그 목숨이 끝날 때까지
+      drawLives();
+      if (state.lives > 0) { state.balls = [{ b: Brick.ball(p), trail: [] }]; Sfx.lose(); }
+      else gameOver();
+    }
+
+    stepFx(dt);
+    draw();
+    var flying = state.balls.some(function (o) { return o.b.state === 'fly'; });
+    if (dir() || flying || state.fx.length || state.shake || (!calm && effectsAlive())) raf = requestAnimationFrame(frame);
+    else { raf = 0; last = 0; }
+  }
+  function ballSpeed() {
+    return Brick.BALL_SPEED * (state.fast ? Brick.FAST_SCALE : 1);
+  }
+  function launch() {
+    var o = state.balls[0];
+    if (!o || o.b.state !== 'rest') return;
+    o.b = Brick.launch(o.b, ballSpeed());
+    o.trail = [];
+    Sfx.launch();
+    kick();
+  }
+  function kick() {
+    if (!raf) { last = 0; raf = requestAnimationFrame(frame); }
+  }
+  function keyName(e) {
+    if (e.key === 'ArrowLeft' || e.key === 'Left') return 'left';
+    if (e.key === 'ArrowRight' || e.key === 'Right') return 'right';
+    return null;
+  }
+  // 덮개(게임 오버, 스테이지 클리어): 잠깐 뒤에 띄우고 버튼에 초점을 둔다
+  var dialogTimer = 0, dialogShownAt = 0;
+  function showDialog(el, btn, delay) {
+    held.left = held.right = false;
+    padOff();
+    dialogTimer = setTimeout(function () {
+      el.hidden = false;
+      dialogShownAt = Date.now();
+      btn.focus({ preventScroll: true });
+    }, delay);
+  }
+  function hideDialogs() {
+    clearTimeout(dialogTimer);
+    overEl.hidden = true;
+    clearEl.hidden = true;
+    retryBtn.blur();
+    nextBtn.blur();
+  }
+  function gameOver() {
+    state.over = true;
+    Sfx.over();
+    showDialog(overEl, retryBtn, 550);
+  }
+  // 벽돌을 다 깨면: 남은 공은 잠깐 더 날다가 덮개가 뜰 때 치운다
+  function stageClear() {
+    state.clear = true;
+    clearTitle.textContent = '스테이지 ' + state.stage + ' 클리어';
+    Sfx.clear();
+    showDialog(clearEl, nextBtn, 650);
+    setTimeout(function () { if (state.clear) { state.balls = []; draw(); } }, 650);
+  }
+  function restart() {
+    hideDialogs();
+    state = newState();
+    vel = 0;
+    held.left = held.right = false;
+    renderLayer();
+    draw();
+    drawScore();
+    drawLives();
+    kick();
+  }
+  // 다음 스테이지: 점수, 목숨, 빨라짐은 이어 가고 벽돌과 공만 새로
+  function nextStage() {
+    hideDialogs();
+    state.stage += 1;
+    state.clear = false;
+    state.fx = [];
+    state.shake = null;
+    state.bricks = Brick.buildStage(state.stage, Math.random);
+    state.balls = [{ b: Brick.ball(state.paddle), trail: [] }];
+    vel = 0;
+    held.left = held.right = false;
+    renderLayer();
+    draw();
+    kick();
+  }
+  retryBtn.addEventListener('click', function () { Sfx.click(); restart(); });
+  nextBtn.addEventListener('click', function () { Sfx.click(); nextStage(); });
+  function isSpace(e) { return e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space'; }
+
+  window.addEventListener('keydown', function (e) {
+    Sfx.unlock();
+    if (state.over || state.clear) {
+      // 덮개가 있는 동안엔 막대와 공을 멈추고, 스페이스·엔터는 덮개의 버튼이다.
+      // 덮개가 뜬 직후의 눌림(공을 쏘려고 연타하던 손)이나 꾹 누름은 무시한다.
+      if (isSpace(e) || e.key === 'Enter') {
+        e.preventDefault();
+        var shown = state.over ? !overEl.hidden : !clearEl.hidden;
+        if (shown && !e.repeat && Date.now() - dialogShownAt > 400) {
+          Sfx.click();
+          if (state.over) restart(); else nextStage();
+        }
+      } else if (keyName(e)) e.preventDefault();
+      return;
+    }
+    if (isSpace(e)) {
+      e.preventDefault();
+      launch();
+      return;
+    }
+    var k = keyName(e);
+    if (!k) return;
+    e.preventDefault();
+    held[k] = true;
+    kick();
+  });
+  window.addEventListener('keyup', function (e) {
+    var k = keyName(e);
+    if (!k) return;
+    e.preventDefault();
+    held[k] = false;
+    if (!state.over && !state.clear) kick();
+  });
+  // 창을 벗어나면 키를 뗀 것으로 본다(떼는 신호를 놓쳐 계속 굴러가지 않게)
+  function releaseAll() { held.left = held.right = false; padOff(); kick(); }
+
+  // 휴대폰 조작: ◀ ▶는 누르고 있는 동안 방향키와 같고, 발사는 스페이스바와 같다.
+  // 손가락이 버튼 밖으로 미끄러져도 뗄 때까지 그 버튼으로 본다(pointer capture).
+  var pad = document.getElementById('pad');
+  var holdBtns = pad.querySelectorAll('[data-hold]');
+  function padOff() {
+    for (var i = 0; i < holdBtns.length; i++) holdBtns[i].classList.remove('on');
+  }
+  Array.prototype.forEach.call(holdBtns, function (btn) {
+    var k = btn.getAttribute('data-hold');
+    btn.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      Sfx.unlock();
+      if (state.over || state.clear) return;
+      try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+      held[k] = true;
+      btn.classList.add('on');
+      kick();
+    });
+    function up() {
+      if (!btn.classList.contains('on')) return;
+      held[k] = false;
+      btn.classList.remove('on');
+      if (!state.over && !state.clear) kick();
+    }
+    btn.addEventListener('pointerup', up);
+    btn.addEventListener('pointercancel', up);
+    btn.addEventListener('lostpointercapture', up);
+  });
+  var fireBtn = document.getElementById('fire');
+  fireBtn.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    Sfx.unlock();
+    if (state.over || state.clear) return;
+    fireBtn.classList.add('on');
+    launch();
+  });
+  function fireUp() { fireBtn.classList.remove('on'); }
+  fireBtn.addEventListener('pointerup', fireUp);
+  fireBtn.addEventListener('pointercancel', fireUp);
+  fireBtn.addEventListener('pointerleave', fireUp);
+  pad.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  window.addEventListener('blur', releaseAll);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) releaseAll(); });
+
+  function fit() {
+    dpr = window.devicePixelRatio || 1;
+    var aw = Math.max(1, window.innerWidth - 32);
+    // 휴대폰 조작 줄이 보이면 그 높이(버튼 + 위 여백)만큼 뺀다
+    var padH = pad.offsetHeight ? pad.offsetHeight + 12 : 0;
+    var ah = Math.max(1, window.innerHeight - 32 - padH);
+    // 점수 줄 높이(필드 단위로 약 26칸)까지 함께 맞춘다
+    s = Math.min(aw / Brick.W, ah / (Brick.H + 26), 3.2);
+    document.documentElement.style.setProperty('--s', s);
+    canvas.style.width = Brick.W * s + 'px';
+    canvas.style.height = Brick.H * s + 'px';
+    canvas.width = Math.round(Brick.W * s * dpr);
+    canvas.height = Math.round(Brick.H * s * dpr);
+    renderLayer();
+    draw();
+  }
+
+  window.addEventListener('resize', fit);
+  fit();
+  drawScore();
+  drawLives();
+  kick();   // 효과 벽돌의 빛이 처음부터 흐르게
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load('600 16px "Chakra Petch"').then(function () { renderLayer(); draw(); }, function () {});
+  }
+})();
+</script>
+</body>
+</html>

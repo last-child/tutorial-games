@@ -1,0 +1,1266 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>해달 쓰다듬기</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%235cc3d3'/%3E%3Ccircle cx='8.5' cy='10' r='3.2' fill='%238a5a33'/%3E%3Ccircle cx='23.5' cy='10' r='3.2' fill='%238a5a33'/%3E%3Cellipse cx='16' cy='17' rx='10' ry='9' fill='%23a8723f'/%3E%3Cellipse cx='16' cy='20' rx='6' ry='4.4' fill='%23f6e2c4'/%3E%3Ccircle cx='12' cy='15.5' r='1.4' fill='%232a1a10'/%3E%3Ccircle cx='20' cy='15.5' r='1.4' fill='%232a1a10'/%3E%3Cellipse cx='16' cy='18.6' rx='1.9' ry='1.3' fill='%232a1a10'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@500;700&display=swap" rel="stylesheet">
+<script>
+  // 홈페이지에서 고른 라이트/다크 테마를 틀 바깥 색에 적용
+  (function () {
+    var mode = 'auto', hue = 250;
+    try {
+      mode = localStorage.getItem('hooni-theme') || 'auto';
+      var h = parseInt(localStorage.getItem('hooni-hue'), 10);
+      if (!isNaN(h)) hue = h;
+    } catch (e) {}
+    var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.style.setProperty('--hue', hue);
+  })();
+</script>
+<style>
+  :root {
+    --hue: 250;
+    --page-bg: oklch(0.95 0.01 var(--hue));
+    /* 1u = 마당 너비의 1%. 화면이 낮으면 높이에 맞춰 줄어든다 */
+    --fw: min(100vw, 520px);
+    --u: min(calc(var(--fw) / 100), calc(100vh / 158));
+
+    --sea: #5cc3d3;
+    --sea-shade: rgba(14, 82, 108, .38);
+    --foam: #f4fdff;
+    --stone: #f1e8d6;
+    --stone-edge: #d9ccb2;
+    --ink: #3b2a1c;
+    --ink-soft: #6e5a45;
+    --gold: #f5b83d;
+    --gold-light: #ffd36e;
+    --gold-dark: #d4951f;
+    --alert: #d9472b;
+    --ease-out: cubic-bezier(.16, 1, .3, 1);
+  }
+  @supports (height: 100dvh) {
+    :root { --u: min(calc(var(--fw) / 100), calc(100dvh / 158)); }
+  }
+  :root.dark { --page-bg: oklch(0.16 0.014 var(--hue)); }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  ::selection { background: var(--gold-light); color: var(--ink); }
+  button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: inherit; }
+  /* 누르는 동안엔 손이 톡 쓰다듬는 모양 */
+  .frame:active { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg transform='rotate(8 16 18) translate(16 18) scale(0.9) translate(-16 -18)'%3E%3Cpath d='M12 23.5C9.6 22.4 7.6 20.4 6.4 17.4' fill='none' stroke='%233b2a1c' stroke-width='7' stroke-linecap='round'/%3E%3Cg fill='%233b2a1c' stroke='%233b2a1c' stroke-width='3' stroke-linejoin='round'%3E%3Crect x='9' y='14' width='15' height='13' rx='6'/%3E%3Crect x='9.5' y='6' width='3.6' height='12' rx='1.8'/%3E%3Crect x='13.3' y='4' width='3.6' height='13' rx='1.8'/%3E%3Crect x='17.1' y='5' width='3.6' height='12' rx='1.8'/%3E%3Crect x='20.6' y='8.5' width='3.3' height='10' rx='1.65'/%3E%3C/g%3E%3Cpath d='M12 23.5C9.6 22.4 7.6 20.4 6.4 17.4' fill='none' stroke='%23fff6e2' stroke-width='4' stroke-linecap='round'/%3E%3Cg fill='%23fff6e2'%3E%3Crect x='9' y='14' width='15' height='13' rx='6'/%3E%3Crect x='9.5' y='6' width='3.6' height='12' rx='1.8'/%3E%3Crect x='13.3' y='4' width='3.6' height='13' rx='1.8'/%3E%3Crect x='17.1' y='5' width='3.6' height='12' rx='1.8'/%3E%3Crect x='20.6' y='8.5' width='3.3' height='10' rx='1.65'/%3E%3C/g%3E%3Cg stroke='%23e7c9a0' stroke-width='.9' stroke-linecap='round'%3E%3Cpath d='M13.3 15v2.5M17.1 15v2.5M20.6 15.5v2'/%3E%3C/g%3E%3Cellipse cx='17' cy='22' rx='3.2' ry='2.4' fill='%23ffc7c0' opacity='.8'/%3E%3C/g%3E%3C/svg%3E") 16 18, pointer; }
+  svg { display: block; overflow: visible; }
+
+  /* ---------- 다시마 숲 바다 ---------- */
+  .frame {
+    --tile: calc(var(--u) * 17);
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg transform='rotate(-12 16 18) translate(16 18) scale(1) translate(-16 -18)'%3E%3Cpath d='M12 23.5C9.6 22.4 7.6 20.4 6.4 17.4' fill='none' stroke='%233b2a1c' stroke-width='7' stroke-linecap='round'/%3E%3Cg fill='%233b2a1c' stroke='%233b2a1c' stroke-width='3' stroke-linejoin='round'%3E%3Crect x='9' y='14' width='15' height='13' rx='6'/%3E%3Crect x='9.5' y='6' width='3.6' height='12' rx='1.8'/%3E%3Crect x='13.3' y='4' width='3.6' height='13' rx='1.8'/%3E%3Crect x='17.1' y='5' width='3.6' height='12' rx='1.8'/%3E%3Crect x='20.6' y='8.5' width='3.3' height='10' rx='1.65'/%3E%3C/g%3E%3Cpath d='M12 23.5C9.6 22.4 7.6 20.4 6.4 17.4' fill='none' stroke='%23fff6e2' stroke-width='4' stroke-linecap='round'/%3E%3Cg fill='%23fff6e2'%3E%3Crect x='9' y='14' width='15' height='13' rx='6'/%3E%3Crect x='9.5' y='6' width='3.6' height='12' rx='1.8'/%3E%3Crect x='13.3' y='4' width='3.6' height='13' rx='1.8'/%3E%3Crect x='17.1' y='5' width='3.6' height='12' rx='1.8'/%3E%3Crect x='20.6' y='8.5' width='3.3' height='10' rx='1.65'/%3E%3C/g%3E%3Cg stroke='%23e7c9a0' stroke-width='.9' stroke-linecap='round'%3E%3Cpath d='M13.3 15v2.5M17.1 15v2.5M20.6 15.5v2'/%3E%3C/g%3E%3Cellipse cx='17' cy='22' rx='3.2' ry='2.4' fill='%23ffc7c0' opacity='.8'/%3E%3C/g%3E%3C/svg%3E") 16 18, pointer;
+    position: relative;
+    width: var(--fw);
+    height: 100vh;
+    height: 100dvh;
+    margin: 0 auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--sea);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round' opacity='.09'%3E%3Cpath d='M10 30c10-14 30-12 36 0s-6 26-20 24S2 42 10 30z'/%3E%3Cpath d='M70 12c14-6 34 2 34 16s-18 22-30 16-16-26-4-32z'/%3E%3Cpath d='M50 80c8-12 30-14 40-2s2 30-16 30-32-14-24-28z'/%3E%3Cpath d='M-6 96c8-6 18-4 20 6'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(ellipse 60% 40% at 18% 22%, rgba(255,255,255,.22), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 55% 45% at 85% 70%, rgba(255,255,255,.16), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 70% 50% at 50% 100%, rgba(20,110,140,.28), rgba(20,110,140,0) 70%);
+    background-size: calc(var(--u) * 40) calc(var(--u) * 40), auto, auto, auto;
+  }
+  /* 천천히 흘러가는 잔물결 */
+  .frame::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--tile) * -1);
+    right: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.8' stroke-linecap='round' opacity='.42'%3E%3Cpath d='M6 14q4-4 8 0t8 0'/%3E%3Cpath d='M36 34q4-4 8 0t8 0'/%3E%3Cpath d='M14 50q3-3 6 0t6 0'/%3E%3C/g%3E%3Cg fill='%23ffffff' opacity='.45'%3E%3Ccircle cx='46' cy='10' r='1.2'/%3E%3Ccircle cx='26' cy='28' r='1'/%3E%3Ccircle cx='54' cy='52' r='.9'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: var(--tile) var(--tile);
+    animation: drift 16s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes drift {
+    to { transform: translateX(var(--tile)); }
+  }
+  @media (min-width: 521px) {
+    .frame { box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 20px 60px -20px rgba(0,0,0,.35); }
+  }
+
+  /* ---------- 위쪽: 바위 두 개와 시작 버튼 ---------- */
+  .hud {
+    position: relative;
+    z-index: 2;
+    width: calc(var(--u) * 100);
+    padding: calc(var(--u) * 5) calc(var(--u) * 5) 0;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 3);
+  }
+  .stone {
+    width: calc(var(--u) * 25);
+    height: calc(var(--u) * 19);
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--u) * .4);
+    background:
+      radial-gradient(circle at 30% 28%, rgba(255,255,255,.7), rgba(255,255,255,0) 45%),
+      var(--stone);
+    box-shadow:
+      inset 0 calc(var(--u) * -.9) 0 var(--stone-edge),
+      0 0 0 calc(var(--u) * .8) rgba(244, 253, 255, .7),
+      0 calc(var(--u) * 1.2) calc(var(--u) * 2.2) var(--sea-shade);
+  }
+  .stone-score { border-radius: 46% 54% 50% 50% / 56% 50% 50% 44%; }
+  .stone-time  { border-radius: 54% 46% 48% 52% / 48% 56% 44% 52%; }
+  .stone .label {
+    font-size: calc(var(--u) * 3.3);
+    font-weight: 700;
+    color: var(--ink-soft);
+    letter-spacing: .04em;
+  }
+  .stone b {
+    font-family: "Jua", "Noto Sans KR", sans-serif;
+    font-weight: 400;
+    font-size: calc(var(--u) * 8.4);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: color .3s;
+  }
+  .stone-time.low b { color: var(--alert); }
+
+  .start {
+    flex: 1;
+    height: calc(var(--u) * 14);
+    border-radius: 999px;
+    font-family: "Jua", "Noto Sans KR", sans-serif;
+    font-size: calc(var(--u) * 5.6);
+    color: var(--ink);
+    background: linear-gradient(180deg, var(--gold-light), var(--gold) 70%);
+    box-shadow:
+      inset 0 calc(var(--u) * -1.1) 0 var(--gold-dark),
+      inset 0 calc(var(--u) * .5) 0 rgba(255,255,255,.55),
+      0 calc(var(--u) * 1) calc(var(--u) * 2) var(--sea-shade);
+    transition: transform .12s var(--ease-out), box-shadow .12s var(--ease-out), filter .2s;
+  }
+  .start:hover { filter: brightness(1.04) saturate(1.05); }
+  .start:active {
+    transform: translateY(calc(var(--u) * .5));
+    box-shadow:
+      inset 0 calc(var(--u) * -.5) 0 var(--gold-dark),
+      inset 0 calc(var(--u) * .5) 0 rgba(255,255,255,.55),
+      0 calc(var(--u) * .4) calc(var(--u) * 1) var(--sea-shade);
+  }
+  .start.pause {
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse at 30% 24%, rgba(255,255,255,.7), rgba(255,255,255,0) 50%),
+      var(--stone);
+    box-shadow:
+      inset 0 calc(var(--u) * -.9) 0 var(--stone-edge),
+      0 0 0 calc(var(--u) * .6) rgba(244, 253, 255, .7),
+      0 calc(var(--u) * .8) calc(var(--u) * 1.6) var(--sea-shade);
+  }
+  .start.pause:active {
+    box-shadow:
+      inset 0 calc(var(--u) * -.4) 0 var(--stone-edge),
+      0 0 0 calc(var(--u) * .6) rgba(244, 253, 255, .7),
+      0 calc(var(--u) * .3) calc(var(--u) * .8) var(--sea-shade);
+  }
+  .start.gone { visibility: hidden; }
+  .sound {
+    position: absolute;
+    right: calc(var(--u) * 3.5);
+    bottom: calc(var(--u) * 3);
+    z-index: 3;
+    width: calc(var(--u) * 11);
+    height: calc(var(--u) * 11);
+    display: grid;
+    place-items: center;
+    border-radius: 50% 46% 52% 48% / 48% 52% 46% 54%;
+    background:
+      radial-gradient(circle at 30% 28%, rgba(255,255,255,.7), rgba(255,255,255,0) 45%),
+      var(--stone);
+    box-shadow:
+      inset 0 calc(var(--u) * -.7) 0 var(--stone-edge),
+      0 0 0 calc(var(--u) * .7) rgba(244, 253, 255, .7),
+      0 calc(var(--u) * 1) calc(var(--u) * 1.8) var(--sea-shade);
+    transition: transform .12s var(--ease-out);
+  }
+  .sound:active { transform: translateY(calc(var(--u) * .4)); }
+  .sound svg { width: 56%; height: 56%; }
+  .sound .wave { transition: opacity .15s; }
+  .sound .mute { opacity: 0; transition: opacity .15s; }
+  .sound.off .wave { opacity: 0; }
+  .sound.off .mute { opacity: 1; }
+  .sound.off svg { opacity: .7; }
+  .start:focus-visible, .hole:focus-visible, .sound:focus-visible {
+    outline: calc(var(--u) * .7) solid #fffbe8;
+    outline-offset: calc(var(--u) * .6);
+  }
+
+  /* ---------- 해달 자리 9곳 ---------- */
+  .yard {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    width: calc(var(--u) * 100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .field {
+    position: relative;
+    width: calc(var(--u) * 100);
+    height: calc(var(--u) * 126);
+  }
+  .holes {
+    touch-action: none;
+    position: absolute;
+    inset: calc(var(--u) * 8) calc(var(--u) * 3);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    place-items: center;
+  }
+  .hole {
+    position: relative;
+    width: calc(var(--u) * 30);
+    aspect-ratio: 120 / 100;
+    border-radius: 50%;
+  }
+  .hole > .spot {
+    width: 100%;
+    height: 100%;
+    transition: transform .14s var(--ease-out);
+  }
+  .hole.flip > .spot { transform: scaleX(-1); }
+  .hole:active > .spot { transform: scale(.96); }
+  .hole.flip:active > .spot { transform: scaleX(-1) scale(.96); }
+  /* 해달과 물결이 그려지는 층. 자리 그림과 같은 좌표(120×100)를 쓴다 */
+  .otter-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .otter-layer .fx { transform-box: fill-box; transform-origin: center; }
+  .drop {
+    position: absolute;
+    left: 50%;
+    top: 52%;
+    width: calc(var(--u) * 1.7);
+    height: calc(var(--u) * 1.7);
+    margin: calc(var(--u) * -.85) 0 0 calc(var(--u) * -.85);
+    border-radius: 50%;
+    background: var(--foam);
+    box-shadow: 0 calc(var(--u) * .25) calc(var(--u) * .5) rgba(14, 82, 108, .3);
+    pointer-events: none;
+  }
+
+  /* ---------- 다시마, 물빛, 거품 ---------- */
+  .deco {
+    position: absolute;
+    width: calc(var(--u) * 7);
+    height: calc(var(--u) * 7);
+    margin: calc(var(--u) * -3.5) 0 0 calc(var(--u) * -3.5);
+    pointer-events: none;
+  }
+  .deco.s { width: calc(var(--u) * 5); height: calc(var(--u) * 5); margin: calc(var(--u) * -2.5) 0 0 calc(var(--u) * -2.5); }
+  .deco.l { width: calc(var(--u) * 9); height: calc(var(--u) * 9); margin: calc(var(--u) * -4.5) 0 0 calc(var(--u) * -4.5); }
+  .weed {
+    position: absolute;
+    width: calc(var(--u) * 42);
+    height: calc(var(--u) * 18);
+    pointer-events: none;
+  }
+
+  /* ---------- 결과: 쓰다듬은 해달들이 한 마리씩 떠올라 무리(라프트)를 이룬다 ---------- */
+  .result {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    background: rgba(10, 62, 84, .55);
+  }
+  .result[hidden] { display: none; }
+  .result-inner {
+    width: calc(var(--u) * 88);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .result h2 {
+    margin: 0;
+    font-family: "Jua", "Noto Sans KR", sans-serif;
+    font-weight: 400;
+    font-size: calc(var(--u) * 10);
+    line-height: 1.1;
+    color: var(--foam);
+    text-shadow: 0 calc(var(--u) * .5) calc(var(--u) * 1.4) rgba(8, 48, 66, .6);
+  }
+  .raft {
+    --ot: 18;
+    margin-top: calc(var(--u) * 5);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: calc(var(--u) * 86);
+  }
+  .raft svg {
+    width: calc(var(--u) * var(--ot));
+    height: calc(var(--u) * var(--ot) * .8333);
+    margin: 0 calc(var(--u) * var(--ot) * -.07) calc(var(--u) * var(--ot) * -.1);
+  }
+  .raft .bob { transform-box: fill-box; transform-origin: 50% 100%; }
+  .raft svg:nth-child(odd) .bob { animation: bob 2.4s ease-in-out infinite; }
+  .raft svg:nth-child(even) .bob { animation: bob 2.4s ease-in-out -1.2s infinite; }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3%); }
+  }
+  .result-plate {
+    margin-top: calc(var(--u) * 6);
+    min-width: calc(var(--u) * 54);
+    padding: calc(var(--u) * 3.4) calc(var(--u) * 6) calc(var(--u) * 4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 48% 52% 46% 54% / 44% 40% 56% 52%;
+    background:
+      radial-gradient(ellipse at 30% 22%, rgba(255,255,255,.75), rgba(255,255,255,0) 50%),
+      var(--stone);
+    box-shadow:
+      inset 0 calc(var(--u) * -1) 0 var(--stone-edge),
+      0 0 0 calc(var(--u) * .9) rgba(244, 253, 255, .7),
+      0 calc(var(--u) * 1.6) calc(var(--u) * 3) rgba(8, 48, 66, .45);
+  }
+  .result-plate .label {
+    font-size: calc(var(--u) * 3.4);
+    font-weight: 700;
+    color: var(--ink-soft);
+  }
+  .result-plate b {
+    margin-top: calc(var(--u) * .6);
+    font-family: "Jua", "Noto Sans KR", sans-serif;
+    font-weight: 400;
+    font-size: calc(var(--u) * 14);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .result-plate small {
+    margin-left: calc(var(--u) * 1);
+    font-size: calc(var(--u) * 5.5);
+  }
+  .start.again {
+    flex: none;
+    width: calc(var(--u) * 60);
+    margin-top: calc(var(--u) * 5.5);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .start, .hole > .spot, .sound { transition: none; }
+    .frame::before { animation: none; }
+    .raft svg .bob { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- 물에 뜬 다시마 한 줄기(왼쪽 끝이 밑동) -->
+    <g id="frond">
+      <path d="M0 0c12-4 24 4 36 0s15-6 22-3" stroke="#5e7d22" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      <g fill="#93ad3c" stroke="#6f8f2a" stroke-width=".6">
+        <ellipse cx="10" cy="-4.5" rx="9" ry="3" transform="rotate(-18 10 -4.5)"/>
+        <ellipse cx="20" cy="5" rx="9" ry="3" transform="rotate(16 20 5)"/>
+        <ellipse cx="32" cy="-4" rx="9" ry="3" transform="rotate(-14 32 -4)"/>
+        <ellipse cx="44" cy="4.5" rx="8.5" ry="2.8" transform="rotate(18 44 4.5)"/>
+        <ellipse cx="58" cy="-6.5" rx="8" ry="2.6" transform="rotate(-12 58 -6.5)"/>
+      </g>
+      <g stroke="#b3c95a" stroke-width=".9" stroke-linecap="round" fill="none">
+        <path d="M4-2.6 16-6.4"/>
+        <path d="M26-2.4 38-5.4"/>
+        <path d="M51-5 63-7.6"/>
+      </g>
+      <g fill="#c2d36a" stroke="#6f8f2a" stroke-width=".6">
+        <circle cx="3" cy="-1.2" r="2.6"/>
+        <circle cx="13.5" cy=".8" r="2.6"/>
+        <circle cx="25" cy=".6" r="2.6"/>
+        <circle cx="37" cy="-.2" r="2.4"/>
+        <circle cx="50" cy="-2.8" r="2.2"/>
+      </g>
+      <g fill="#eef5c0">
+        <circle cx="2.2" cy="-2" r=".8"/>
+        <circle cx="12.7" cy="0" r=".8"/>
+        <circle cx="24.2" cy="-.2" r=".8"/>
+      </g>
+    </g>
+
+    <!-- 해달이 떠오를 자리: 다시마가 둘러싼 깊은 물 -->
+    <!-- 해달이 떠오를 자리: 구멍 대신 살짝 깊은 물빛과 잔물결, 수면에 누운 다시마.
+         해달이 물에 잠기는 물결 고리(납작한 타원)와 같은 모양으로 맞췄다 -->
+    <radialGradient id="spot-deep">
+      <stop offset="0" stop-color="#17809d" stop-opacity=".85"/>
+      <stop offset=".6" stop-color="#2390ab" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#2f9db5" stop-opacity="0"/>
+    </radialGradient>
+    <symbol id="spot-art" viewBox="0 0 120 100">
+      <ellipse cx="60" cy="58" rx="54" ry="22" fill="url(#spot-deep)"/>
+      <ellipse cx="60" cy="56" rx="26" ry="6" fill="none" stroke="#f4fdff" stroke-width="2" stroke-linecap="round" stroke-dasharray="22 8 30 10" opacity=".9"/>
+      <ellipse cx="60" cy="57" rx="40" ry="10" fill="none" stroke="#f4fdff" stroke-width="1.7" stroke-linecap="round" stroke-dasharray="18 14 40 20" opacity=".65"/>
+      <path d="M30 66c9 4 22 6 34 5" stroke="#f4fdff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".5"/>
+      <use href="#frond" transform="translate(0 70) rotate(-10) scale(.7)"/>
+      <use href="#frond" transform="translate(120 62) rotate(188) scale(.64)"/>
+    </symbol>
+
+    <symbol id="glint" viewBox="-10 -10 20 20">
+      <path d="M0-6.5 1.4-1.4 6.5 0 1.4 1.4 0 6.5-1.4 1.4-6.5 0-1.4-1.4z" fill="#f4fdff" opacity=".85"/>
+    </symbol>
+
+    <symbol id="bubbles" viewBox="-10 -10 20 20">
+      <g fill="none" stroke="#f4fdff" stroke-width="1.1" opacity=".75">
+        <circle cx="-2" cy="2" r="3.2"/>
+        <circle cx="3.6" cy="-3" r="2"/>
+        <circle cx="4.4" cy="3.6" r="1.2"/>
+      </g>
+      <circle cx="-3" cy="1" r=".8" fill="#f4fdff" opacity=".8"/>
+    </symbol>
+
+    <symbol id="floats" viewBox="-10 -10 20 20">
+      <ellipse cx="4" cy="3.5" rx="5.5" ry="2" transform="rotate(30 4 3.5)" fill="#93ad3c" stroke="#6f8f2a" stroke-width=".5"/>
+      <g fill="#c2d36a" stroke="#6f8f2a" stroke-width=".5">
+        <circle cx="-3" cy="1" r="2.8"/>
+        <circle cx="2" cy="-2.6" r="2.3"/>
+      </g>
+      <g fill="#eef5c0">
+        <circle cx="-3.9" cy=".1" r=".9"/>
+        <circle cx="1.3" cy="-3.3" r=".7"/>
+      </g>
+    </symbol>
+
+    <symbol id="rock" viewBox="-10 -10 20 20">
+      <ellipse cy=".6" rx="8.2" ry="5.8" fill="#f4fdff" opacity=".7"/>
+      <ellipse rx="6.4" ry="4.4" fill="#d9d0c0"/>
+      <ellipse cy="1.4" rx="5.6" ry="3" fill="#c4baa8"/>
+      <ellipse cx="-1.4" cy="-1.6" rx="3" ry="1.5" fill="#efe8dc"/>
+    </symbol>
+    <clipPath id="above-water" clipPathUnits="userSpaceOnUse">
+      <path d="M-40-80H160V56H98A38 9 0 0 1 22 56H-40z"/>
+    </clipPath>
+  </defs>
+</svg>
+
+<div class="frame">
+  <header class="hud">
+    <div class="stone stone-score">
+      <span class="label">점수</span>
+      <b id="score">0</b>
+    </div>
+    <div class="stone stone-time" id="time-stone">
+      <span class="label">시간</span>
+      <b id="time">30</b>
+    </div>
+    <button class="start" id="start" type="button">게임 시작</button>
+  </header>
+
+  <main class="yard">
+    <div class="field">
+      <svg class="weed" viewBox="-4 -16 74 32" style="left:-20%;top:-4%;transform:rotate(16deg)"><use href="#frond"/></svg>
+      <svg class="weed" viewBox="-4 -16 74 32" style="left:80%;top:42%;transform:rotate(200deg)"><use href="#frond"/></svg>
+      <svg class="weed" viewBox="-4 -16 74 32" style="left:-18%;top:92%;transform:rotate(-14deg)"><use href="#frond"/></svg>
+      <svg class="deco" style="left:34%;top:30%"><use href="#glint"/></svg>
+      <svg class="deco s" style="left:38.5%;top:34%"><use href="#glint"/></svg>
+      <svg class="deco" style="left:67%;top:62%"><use href="#bubbles"/></svg>
+      <svg class="deco l" style="left:96%;top:20%"><use href="#floats"/></svg>
+      <svg class="deco" style="left:4%;top:62%"><use href="#bubbles"/></svg>
+      <svg class="deco s" style="left:50%;top:65%"><use href="#glint"/></svg>
+      <svg class="deco l" style="left:30%;top:95%"><use href="#floats"/></svg>
+      <svg class="deco" style="left:56%;top:97%"><use href="#rock"/></svg>
+      <svg class="deco s" style="left:65%;top:31%"><use href="#bubbles"/></svg>
+
+      <div class="holes" id="holes">
+        <button class="hole" type="button" aria-label="자리 1"><svg class="spot" viewBox="0 0 120 100" aria-hidden="true"><use href="#spot-art"/></svg></button>
+        <button class="hole flip" type="button" aria-label="자리 2"><svg class="spot" viewBox="0 0 120 100" aria-hidden="true"><use href="#spot-art"/></svg></button>
+        <button class="hole" type="button" aria-label="자리 3"><svg class="spot" viewBox="0 0 120 100" aria-hidden="true"><use href="#spot-art"/></svg></button>
+        <button class="hole flip" type="button" aria-label="자리 4"><svg class="spot" viewBox="0 0 120 100" aria-hidden="true"><use href="#spot-art"/></svg></button>
+        <button class="hole" type="button" aria-label="자리 5"><svg class="spot" viewBox="0 0 120 100" aria-hidden="true"><use href="#spot-art"/></svg></button>
+        <button class="hole flip" type="button" aria-label="자리 6"><svg class="spot" viewBox="0 0 120 100" aria-hidden="true"><use href="#spot-art"/></svg></button>
+        <button class="hole" type="button" aria-label="자리 7"><svg class="spot" viewBox="0 0 120 100" aria-hidden="true"><use href="#spot-art"/></svg></button>
+        <button class="hole flip" type="button" aria-label="자리 8"><svg class="spot" viewBox="0 0 120 100" aria-hidden="true"><use href="#spot-art"/></svg></button>
+        <button class="hole" type="button" aria-label="자리 9"><svg class="spot" viewBox="0 0 120 100" aria-hidden="true"><use href="#spot-art"/></svg></button>
+      </div>
+    </div>
+  </main>
+
+  <div class="result" id="paused" hidden>
+    <div class="result-inner" role="dialog" aria-modal="true" aria-labelledby="paused-title">
+      <h2 id="paused-title">일시정지</h2>
+      <button class="start again" id="resume" type="button">계속하기</button>
+    </div>
+  </div>
+
+  <div class="result" id="result" hidden>
+    <div class="result-inner" role="dialog" aria-modal="true" aria-labelledby="result-title" aria-describedby="result-sum">
+      <h2 id="result-title">시간 끝!</h2>
+      <div class="raft" id="raft" aria-hidden="true"></div>
+      <div class="result-plate" id="result-sum">
+        <span class="label">쓰다듬은 해달</span>
+        <b><span id="result-score">0</span><small>마리</small></b>
+      </div>
+      <button class="start again" id="again" type="button">다시 하기</button>
+    </div>
+  </div>
+
+  <button class="sound" id="sound" type="button" aria-label="소리 끄기" aria-pressed="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3.5 9.2h3.8L12.4 5v14l-5.1-4.2H3.5z" fill="#3b2a1c" stroke="#3b2a1c" stroke-width="1.4" stroke-linejoin="round"/>
+      <g class="wave" fill="none" stroke="#3b2a1c" stroke-width="2" stroke-linecap="round">
+        <path d="M15.6 9.3c1.3 1.6 1.3 3.8 0 5.4"/>
+        <path d="M18.3 6.8c2.6 3 2.6 7.4 0 10.4"/>
+      </g>
+      <g class="mute" fill="none" stroke="#3b2a1c" stroke-width="2" stroke-linecap="round">
+        <path d="M15.5 9.5l5 5M20.5 9.5l-5 5"/>
+      </g>
+    </svg>
+  </button>
+</div>
+
+<script id="logic">
+  // 규칙(순수 함수). Node에서 따로 시험할 수 있다.
+  var Otter = {
+    DURATION: 30, // 한 판 제한 시간(초)
+    LOW: 5,       // 이 초 이하면 시간 숫자를 빨갛게
+
+    // 해달 한 마리가 나왔다 들어가는 순서. [그림, 보여 줄 시간(ms)]
+    RISE: [['01_peek', 45], ['02_rise', 45], ['03_head_up', 55], ['04_pop_up', 80]],
+    STAY: 1000,               // 다 올라온 뒤 머무는 시간
+    BLINK: [450, 130],        // 머무는 동안 눈 깜빡임(시작, 길이)
+    SINK: [['09_lower', 60], ['10_hide', 60], ['11_exit', 70]],
+    FIRST: 200,               // 시작 후 첫 해달까지
+    GAP: 100,                 // 들어간 뒤 다음 해달까지
+    TOUCH: 150,               // 쓰다듬은 순간 반응하는 시간
+    CHEER: 600,               // 그다음 기뻐하는 시간
+
+    // 해달을 쓰다듬으면 1점
+    pet: function (s) {
+      return { score: s.score + 1, left: s.left, running: s.running, endAt: s.endAt };
+    },
+
+    // 다음 자리(0~8). 방금 나온 자리는 피한다. r은 0 이상 1 미만의 난수
+    // 변칙: 가끔 빼꼼 고개만 내밀었다가 쏙 들어가는 해달
+    FAKE_RATE: 0.25,          // 나오다 마는 해달의 비율(10마리 중 2~3마리)
+    PEEK: [['01_peek', 45], ['02_rise', 60]],
+    PEEK_HOLD: 260,           // 빼꼼한 채 머무는 시간
+    PEEK_BACK: [['10_hide', 60], ['11_exit', 70]],
+    AFTER_PEEK: 80,           // 쏙 들어간 뒤 진짜 해달이 나오기까지
+
+    // 이번 해달이 나오다 마는 녀석인지. 두 번 연달아 속이지는 않는다
+    isFake: function (prevWasFake, r) {
+      return !prevWasFake && r < Otter.FAKE_RATE;
+    },
+    // 빼꼼한 뒤 진짜 해달은 반드시 다른 자리에서 나온다(사용자 요청)
+    afterPeek: function (i, r) {
+      return Otter.nextSpot(i, r);
+    },
+
+    nextSpot: function (prev, r) {
+      if (prev < 0) return Math.min(8, Math.floor(r * 9));
+      var n = Math.min(7, Math.floor(r * 8));
+      return n >= prev ? n + 1 : n;
+    },
+
+    newGame: function () {
+      return { score: 0, left: Otter.DURATION, running: false, endAt: 0 };
+    },
+    // 멈추면 남은 시간(ms)을 기억하고, 이어 하면 그만큼 다시 흐른다
+    pause: function (s, now) {
+      if (!s.running) return s;
+      return { score: s.score, left: s.left, running: false, paused: true, remain: Math.max(0, s.endAt - now), endAt: 0 };
+    },
+    resume: function (s, now) {
+      if (!s.paused) return s;
+      return { score: s.score, left: s.left, running: true, endAt: now + s.remain };
+    },
+    start: function (now) {
+      return { score: 0, left: Otter.DURATION, running: true, endAt: now + Otter.DURATION * 1000 };
+    },
+    // 남은 시간을 다시 계산한다. 0이 되면 게임이 끝난다.
+    tick: function (s, now) {
+      if (!s.running) return s;
+      var left = Math.max(0, Math.ceil((s.endAt - now) / 1000));
+      return { score: s.score, left: left, running: left > 0, endAt: s.endAt };
+    },
+    isLow: function (s) {
+      return s.running && s.left <= Otter.LOW;
+    }
+  };
+  if (typeof module !== 'undefined') module.exports = Otter;
+</script>
+
+<script>
+  (function () {
+    var scoreEl = document.getElementById('score');
+    var timeEl = document.getElementById('time');
+    var timeStone = document.getElementById('time-stone');
+    var startBtn = document.getElementById('start');
+    var holes = document.querySelectorAll('.hole');
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ---------- 소리 (Web Audio로 합성) ----------
+    var soundBtn = document.getElementById('sound');
+    var soundOn = true;
+    try { soundOn = localStorage.getItem('hooni-otter-sound') !== '0'; } catch (e) {}
+    var actx = null, master = null, noiseBuf = null;
+
+    function audio() {
+      if (!actx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        actx = new AC();
+        master = actx.createGain();
+        master.gain.value = 0.55;
+        master.connect(actx.destination);
+        noiseBuf = actx.createBuffer(1, Math.floor(actx.sampleRate * 0.25), actx.sampleRate);
+        var d = noiseBuf.getChannelData(0);
+        for (var n = 0; n < d.length; n++) d[n] = Math.random() * 2 - 1;
+      }
+      if (actx.state === 'suspended') actx.resume();
+      return actx;
+    }
+    function ready() { return soundOn && audio(); }
+
+    // 음 하나: 주파수가 from에서 to로 미끄러지고 소리는 금방 잦아든다
+    function tone(type, from, to, at, dur, vol, dest) {
+      var t0 = actx.currentTime + at;
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(from, t0);
+      o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g);
+      g.connect(dest || master);
+      o.start(t0);
+      o.stop(t0 + dur + 0.02);
+    }
+    // 종소리: 맑은 음 + 살짝 높은 배음
+    function bell(freq, at, vol) {
+      tone('sine', freq, freq, at, 0.42, vol);
+      tone('sine', freq * 2.01, freq * 2.01, at, 0.2, vol * 0.25);
+    }
+
+    // 뀨: "ㄲ" 짧은 딸깍 + "유" 떨리는 목소리(둥근 모음처럼 울리는 필터)
+    function kyu(at, v) {
+      var t0 = actx.currentTime + at;
+      var click = actx.createBufferSource(), hp = actx.createBiquadFilter(), cg = actx.createGain();
+      click.buffer = noiseBuf;
+      hp.type = 'highpass';
+      hp.frequency.value = 2500;
+      cg.gain.setValueAtTime(0.0001, t0);
+      cg.gain.exponentialRampToValueAtTime(v.vol * 0.5, t0 + 0.003);
+      cg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.018);
+      click.connect(hp);
+      hp.connect(cg);
+      cg.connect(master);
+      click.start(t0);
+      click.stop(t0 + 0.03);
+
+      var lp = actx.createBiquadFilter(), env = actx.createGain();
+      lp.type = 'lowpass';
+      lp.frequency.value = v.cutoff;
+      lp.Q.value = v.q;
+      env.gain.setValueAtTime(0.0001, t0);
+      env.gain.exponentialRampToValueAtTime(v.vol, t0 + 0.02);
+      env.gain.exponentialRampToValueAtTime(v.vol * 0.75, t0 + v.dur * 0.6);
+      env.gain.exponentialRampToValueAtTime(0.0001, t0 + v.dur);
+      lp.connect(env);
+      env.connect(master);
+
+      var lfo = actx.createOscillator(), depth = actx.createGain();
+      lfo.frequency.value = v.vib;
+      depth.gain.value = v.vibDepth;
+      lfo.connect(depth);
+      var kinds = [['triangle', 1], ['sine', 0.7]];
+      for (var k = 0; k < kinds.length; k++) {
+        var o = actx.createOscillator(), og = actx.createGain();
+        o.type = kinds[k][0];
+        o.frequency.setValueAtTime(v.f0, t0);
+        o.frequency.exponentialRampToValueAtTime(v.peak, t0 + v.dur * 0.22);
+        o.frequency.exponentialRampToValueAtTime(v.end, t0 + v.dur);
+        depth.connect(o.frequency);
+        og.gain.value = kinds[k][1];
+        o.connect(og);
+        og.connect(lp);
+        o.start(t0);
+        o.stop(t0 + v.dur + 0.03);
+      }
+      lfo.start(t0);
+      lfo.stop(t0 + v.dur + 0.03);
+    }
+
+    var sfx = {
+      // 퐁! 물방울이 위로 튀는 소리
+      rise: function (soft) {
+        if (!ready()) return;
+        var k = soft ? 0.45 : 1;
+        tone('sine', 320, 920, 0, 0.11, 0.42 * k);
+        tone('sine', 900, 1300, 0.03, 0.05, 0.08 * k);
+      },
+      // 보글 거품 셋, 점점 낮게
+      sink: function (soft) {
+        if (!ready()) return;
+        if (soft) { tone('sine', 640, 360, 0, 0.06, 0.14); return; }
+        tone('sine', 760, 420, 0, 0.06, 0.2);
+        tone('sine', 620, 330, 0.07, 0.06, 0.17);
+        tone('sine', 500, 260, 0.14, 0.07, 0.14);
+      },
+      // 뀨! 동물이 기분 좋을 때 내는 짧은 소리, 이어서 작은 띠링. 매번 음높이가 조금씩 다르다
+      pet: function () {
+        if (!ready()) return;
+        var r = 0.94 + Math.random() * 0.12;
+        kyu(0, { f0: 1000 * r, peak: 1550 * r, end: 1250 * r, dur: 0.2, vib: 22, vibDepth: 35, cutoff: 2400, q: 5, vol: 0.32 });
+        bell(1568, 0.2, 0.1);
+        bell(2093, 0.28, 0.09);
+      },
+      // 찰방: 짧은 물 튀는 소리
+      splash: function () {
+        if (!ready()) return;
+        var t0 = actx.currentTime;
+        var src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g = actx.createGain();
+        src.buffer = noiseBuf;
+        bp.type = 'bandpass';
+        bp.frequency.setValueAtTime(2400, t0);
+        bp.frequency.exponentialRampToValueAtTime(900, t0 + 0.12);
+        bp.Q.value = 1.2;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.32, t0 + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.13);
+        src.connect(bp);
+        bp.connect(g);
+        g.connect(master);
+        src.start(t0);
+        src.stop(t0 + 0.15);
+        tone('sine', 520, 240, 0, 0.06, 0.12);
+      },
+      // 결과에서 해달이 하나 떠오를 때마다 한 음씩 높아지는 작은 퐁
+      count: function (k) {
+        if (!ready()) return;
+        var f = 520 * Math.pow(1.0595, Math.min(k, 14) * 2);
+        tone('sine', f * 0.7, f, 0, 0.09, 0.2);
+      },
+      // 뾰로롱: 도-미-솔
+      start: function () {
+        if (!ready()) return;
+        tone('triangle', 1047, 1047, 0, 0.14, 0.16);
+        tone('triangle', 1319, 1319, 0.08, 0.14, 0.16);
+        tone('triangle', 1568, 1568, 0.16, 0.22, 0.18);
+      }
+    };
+
+    function renderSound() {
+      soundBtn.classList.toggle('off', !soundOn);
+      soundBtn.setAttribute('aria-pressed', soundOn ? 'false' : 'true');
+      soundBtn.setAttribute('aria-label', soundOn ? '소리 끄기' : '소리 켜기');
+    }
+    soundBtn.addEventListener('click', function () {
+      soundOn = !soundOn;
+      try { localStorage.setItem('hooni-otter-sound', soundOn ? '1' : '0'); } catch (e) {}
+      renderSound();
+      if (soundOn) sfx.splash();
+    });
+    renderSound();
+
+    var state = Otter.newGame();
+    var played = false;
+    var timer = null;
+
+    function render() {
+      scoreEl.textContent = state.score;
+      timeEl.textContent = state.left;
+      timeStone.classList.toggle('low', Otter.isLow(state));
+      startBtn.textContent = state.running ? '일시정지' : state.paused ? '계속하기' : '게임 시작';
+      startBtn.classList.toggle('pause', state.running);
+      // 일시정지나 결과 화면이 떠 있을 땐 그 화면의 버튼만 남긴다
+      startBtn.classList.toggle('gone', played && !state.running);
+    }
+
+    function update() {
+      state = Otter.tick(state, Date.now());
+      if (!state.running) {
+        clearInterval(timer);
+        timer = null;
+        endOtters();
+        // 나와 있던 해달이 들어간 뒤 결과를 보여 준다
+        resultTimer = setTimeout(showResult, 500);
+      }
+      render();
+    }
+
+    // ---------- 결과 ----------
+    var resultEl = document.getElementById('result');
+    var resultInner = resultEl.querySelector('.result-inner');
+    var raftEl = document.getElementById('raft');
+    var resultScoreEl = document.getElementById('result-score');
+    var againBtn = document.getElementById('again');
+    var resultTimer = null;
+    var raftTimers = [];
+    var RAFT_FACES = ['05_idle', '08_cheer', '06_blink', '08_cheer', '05_idle', '07_touch'];
+
+    // 물에 떠 있는 해달 한 마리(게임 속 해달과 같은 물결 고리와 자르기)
+    function raftOtter(key) {
+      var svg = svgEl('svg', { viewBox: '0 0 120 100' });
+      svgEl('ellipse', { cx: 60, cy: 56, rx: 40, ry: 10, fill: '#f4fdff', opacity: '.2' }, svg);
+      var bob = svgEl('g', { 'class': 'bob' }, svg);
+      svgEl('path', { d: 'M22 56A38 9 0 0 1 98 56', fill: 'none', stroke: '#f4fdff', 'stroke-width': 1.6, 'stroke-linecap': 'round', opacity: '.6' }, bob);
+      svgEl('image', {
+        href: frameSrc(key), width: OTTER_W, height: OTTER_W, x: (120 - OTTER_W) / 2,
+        y: (WATER_Y - BOTTOM[key] / IMG_SIZE * OTTER_W).toFixed(2), 'clip-path': 'url(#above-water)'
+      }, bob);
+      svgEl('path', { d: 'M98 56A38 9 0 0 1 22 56', fill: 'none', stroke: '#f4fdff', 'stroke-width': 2.6, 'stroke-linecap': 'round', opacity: '.95' }, bob);
+      return svg;
+    }
+
+    function clearRaft() {
+      for (var t = 0; t < raftTimers.length; t++) clearTimeout(raftTimers[t]);
+      raftTimers = [];
+      raftEl.textContent = '';
+    }
+
+    function showResult() {
+      var n = state.score;
+      clearRaft();
+      raftEl.style.setProperty('--ot', n <= 5 ? 18 : n <= 10 ? 15 : 12);
+      // 한 마리도 못 쓰다듬었으면 빼꼼 눈만 내민 해달 하나
+      var otters = [];
+      if (n === 0) otters.push(raftOtter('10_hide'));
+      for (var k = 0; k < n; k++) otters.push(raftOtter(RAFT_FACES[k % RAFT_FACES.length]));
+      otters.forEach(function (o) { raftEl.appendChild(o); });
+
+      resultEl.hidden = false;
+      againBtn.focus({ preventScroll: true });
+      var animate = !reduceMotion && resultEl.animate;
+      if (!animate || n === 0) {
+        resultScoreEl.textContent = n;
+        if (animate) resultEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' });
+        return;
+      }
+      resultEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' });
+      resultInner.animate([{ transform: 'translateY(4%)' }, { transform: 'none' }], { duration: 420, easing: EASE });
+      // 한 마리씩 퐁 떠오르며 숫자가 하나씩 올라간다(전부 1.2초 안에)
+      resultScoreEl.textContent = 0;
+      var step = Math.min(110, 1200 / n);
+      otters.forEach(function (o, i) {
+        o.style.opacity = 0;
+        raftTimers.push(setTimeout(function () {
+          o.style.opacity = '';
+          o.animate([
+            { transform: 'translateY(40%) scale(.7)', opacity: 0 },
+            { transform: 'none', opacity: 1 }
+          ], { duration: 380, easing: EASE });
+          resultScoreEl.textContent = i + 1;
+          sfx.count(i);
+        }, 300 + i * step));
+      });
+    }
+    againBtn.addEventListener('click', startGame);
+
+    // 위쪽 버튼: 시작 전엔 게임 시작, 하는 동안엔 일시정지
+    startBtn.addEventListener('click', function () {
+      if (state.running) pauseGame();
+      else if (state.paused) resumeGame();
+      else startGame();
+    });
+
+    // ---------- 일시정지 ----------
+    var pausedEl = document.getElementById('paused');
+    var resumeBtn = document.getElementById('resume');
+    function pauseGame() {
+      if (!state.running) return;
+      state = Otter.pause(state, Date.now());
+      clearInterval(timer);
+      timer = null;
+      // 나와 있던 해달은 조용히 치우고, 이어 할 때 새로 나온다
+      clearTimers();
+      if (current >= 0) hideOtter(layers[current]);
+      current = -1;
+      phase = 'none';
+      pausedEl.hidden = false;
+      if (!reduceMotion && pausedEl.animate) pausedEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' });
+      resumeBtn.focus({ preventScroll: true });
+      render();
+    }
+    function resumeGame() {
+      if (!state.paused) return;
+      pausedEl.hidden = true;
+      state = Otter.resume(state, Date.now());
+      timer = setInterval(update, 200);
+      later(function () { next(-1); }, Otter.FIRST);
+      render();
+    }
+    resumeBtn.addEventListener('click', resumeGame);
+    // 다른 탭으로 가거나 화면을 끄면 저절로 멈춘다
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden && state.running) pauseGame();
+    });
+
+    function startGame() {
+      if (state.running) return;
+      clearTimeout(resultTimer);
+      clearRaft();
+      resultEl.hidden = true;
+      played = true;
+      state = Otter.start(Date.now());
+      clearInterval(timer);
+      timer = setInterval(update, 200);
+      audio();
+      sfx.start();
+      beginOtters();
+      render();
+    }
+
+    // 자리를 누르면 물방울이 톡 튄다
+    function puff(hole) {
+      if (reduceMotion || !hole.animate) return;
+      var u = hole.offsetWidth / 30;
+      for (var i = 0; i < 5; i++) {
+        var c = document.createElement('span');
+        c.className = 'drop';
+        hole.appendChild(c);
+        var a = -Math.PI * (0.15 + 0.7 * (i / 4)) + (Math.random() - 0.5) * 0.4;
+        var d = (7 + Math.random() * 5) * u;
+        var dx = Math.cos(a) * d * 1.3, dy = Math.sin(a) * d;
+        var anim = c.animate([
+          { transform: 'translate(0,0) scale(1)', opacity: 1 },
+          { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.6)', opacity: 0 }
+        ], { duration: 420 + Math.random() * 120, easing: 'cubic-bezier(.16,1,.3,1)' });
+        anim.onfinish = (function (el) { return function () { el.remove(); }; })(c);
+      }
+    }
+    for (var i = 0; i < holes.length; i++) {
+      holes[i].dataset.i = i;
+      holes[i].addEventListener('click', function () {
+        if (+this.dataset.i === current && phase !== 'none') return;
+        puff(this);
+        sfx.splash();
+      });
+    }
+
+    // ---------- 해달 ----------
+    var NS = 'http://www.w3.org/2000/svg';
+    var IMG_SIZE = 1254;
+    // 그림마다 몸이 잘린 아랫선(px)이 달라서 이 선을 물 높이에 맞춘다
+    var BOTTOM = {
+      '01_peek': 1094, '02_rise': 1068, '03_head_up': 1056, '04_pop_up': 1063,
+      '05_idle': 1065, '06_blink': 1065, '07_touch': 1050, '08_cheer': 1061, '09_lower': 1131, '10_hide': 1036, '11_exit': 1124
+    };
+    var OTTER_W = 112;   // 해달 그림 너비(자리 좌표)
+    var WATER_Y = 67;    // 그림 아랫선이 놓이는 높이. 물결 고리의 앞쪽 호(56~65)보다 살짝 아래
+
+    function frameSrc(key) { return 'img/otter_' + key + '.webp'; }
+    // 미리 받아 두어 바꿔 낄 때 깜빡이지 않게
+    for (var k in BOTTOM) {
+      var pre = new Image();
+      pre.src = frameSrc(k);
+      if (pre.decode) pre.decode().catch(function () {});
+    }
+
+    function svgEl(tag, attrs, parent) {
+      var el = document.createElementNS(NS, tag);
+      for (var a in attrs) el.setAttribute(a, attrs[a]);
+      if (parent) parent.appendChild(el);
+      return el;
+    }
+
+    var layers = [];
+    for (var h = 0; h < holes.length; h++) {
+      var svg = svgEl('svg', { 'class': 'otter-layer', viewBox: '0 0 120 100', 'aria-hidden': 'true' }, holes[h]);
+      var fxBack = svgEl('g', {}, svg);
+      var ringBack = svgEl('g', { 'class': 'fx', opacity: 0 }, svg);
+      svgEl('ellipse', { cx: 60, cy: 56, rx: 38, ry: 9, fill: '#f4fdff', opacity: '.22' }, ringBack);
+      svgEl('path', { d: 'M22 56A38 9 0 0 1 98 56', fill: 'none', stroke: '#f4fdff', 'stroke-width': 1.6, 'stroke-linecap': 'round', opacity: '.6' }, ringBack);
+      var img = svgEl('image', { width: OTTER_W, height: OTTER_W, x: (120 - OTTER_W) / 2, y: 0, 'clip-path': 'url(#above-water)', visibility: 'hidden' }, svg);
+      var ringFront = svgEl('g', { 'class': 'fx', opacity: 0 }, svg);
+      svgEl('path', { d: 'M98 56A38 9 0 0 1 22 56', fill: 'none', stroke: '#f4fdff', 'stroke-width': 2.4, 'stroke-linecap': 'round', opacity: '.9' }, ringFront);
+      svgEl('path', { d: 'M88 61.5c-6 2-14 3-20 3', fill: 'none', stroke: '#f4fdff', 'stroke-width': 1.4, 'stroke-linecap': 'round', opacity: '.6' }, ringFront);
+      var fxFront = svgEl('g', {}, svg);
+      layers.push({ img: img, rings: [ringBack, ringFront], fxBack: fxBack, fxFront: fxFront });
+    }
+
+    function showFrame(L, key) {
+      L.img.setAttribute('href', frameSrc(key));
+      L.img.setAttribute('y', (WATER_Y - BOTTOM[key] / IMG_SIZE * OTTER_W).toFixed(2));
+      L.img.setAttribute('visibility', 'visible');
+    }
+    function hideOtter(L) {
+      L.img.setAttribute('visibility', 'hidden');
+      L.rings[0].setAttribute('opacity', 0);
+      L.rings[1].setAttribute('opacity', 0);
+    }
+
+    // 잠깐 그렸다 사라지는 물결 조각
+    function fx(parent, tag, attrs, frames, opts) {
+      var el = svgEl(tag, attrs, parent);
+      el.setAttribute('class', 'fx');
+      var anim = el.animate(frames, opts);
+      anim.onfinish = function () { el.remove(); };
+    }
+    var EASE = 'cubic-bezier(.16,1,.3,1)';
+    var FOAM = { fill: 'none', stroke: '#f4fdff', 'stroke-width': 1.6, 'vector-effect': 'non-scaling-stroke' };
+    function ripple(L, delay) {
+      var attrs = { cx: 60, cy: 56, rx: 30, ry: 8 };
+      for (var a in FOAM) attrs[a] = FOAM[a];
+      fx(L.fxBack, 'ellipse', attrs, [
+        { transform: 'scale(.6)', opacity: .9 },
+        { transform: 'scale(1.7)', opacity: 0 }
+      ], { duration: 700, delay: delay, easing: EASE, fill: 'backwards' });
+    }
+    function swirl(L, delay) {
+      var attrs = { cx: 60, cy: 56, rx: 34, ry: 9 };
+      for (var a in FOAM) attrs[a] = FOAM[a];
+      fx(L.fxBack, 'ellipse', attrs, [
+        { transform: 'scale(1.5)', opacity: 0 },
+        { transform: 'scale(1)', opacity: .85, offset: .45 },
+        { transform: 'scale(.2)', opacity: 0 }
+      ], { duration: 520, delay: delay, easing: 'ease-in', fill: 'backwards' });
+    }
+    function poolTint(L, color, peak) {
+      fx(L.fxBack, 'ellipse', { cx: 60, cy: 57, rx: 46, ry: 14, fill: color }, [
+        { opacity: peak }, { opacity: 0 }
+      ], { duration: 520, easing: 'ease-out' });
+    }
+    // 쓰다듬으면 물방울 하트가 보글보글 떠올랐다가 거품처럼 톡 터진다
+    var HEART = 'M0 4C-5 0-6.2-2.4-6.2-4.4A3.1 3.1 0 0 1 0-5.4 3.1 3.1 0 0 1 6.2-4.4C6.2-2.4 5 0 0 4Z';
+    function hearts(L) {
+      var spots = [[-24, -2, 1.5, 0], [22, 0, 1.25, 110], [-6, -12, 1.7, 200], [32, -14, 1.05, 290]];
+      for (var h = 0; h < spots.length; h++) {
+        var sp = spots[h];
+        var x = 60 + sp[0], y = sp[1], k = sp[2];
+        var sway = h % 2 ? 4 : -4;
+        var g = svgEl('g', { 'class': 'fx' }, L.fxFront);
+        svgEl('path', { d: HEART, fill: '#ffc7d6', 'fill-opacity': '.85', stroke: '#f4fdff', 'stroke-width': 1.5, 'stroke-linejoin': 'round' }, g);
+        svgEl('ellipse', { cx: -2.7, cy: -3.4, rx: 1.3, ry: .9, fill: '#fff', opacity: '.9' }, g);
+        var anim = g.animate([
+          { transform: 'translate(' + x + 'px,' + y + 'px) scale(' + (.3 * k) + ')', opacity: 0 },
+          { transform: 'translate(' + (x + sway) + 'px,' + (y - 12) + 'px) scale(' + k + ')', opacity: 1, offset: .25 },
+          { transform: 'translate(' + (x - sway) + 'px,' + (y - 27) + 'px) scale(' + k + ')', opacity: 1, offset: .78 },
+          { transform: 'translate(' + x + 'px,' + (y - 34) + 'px) scale(' + (1.5 * k) + ')', opacity: 0 }
+        ], { duration: 950, delay: sp[3], easing: 'ease-out', fill: 'backwards' });
+        anim.onfinish = (function (el) { return function () { el.remove(); }; })(g);
+      }
+    }
+
+    function bubbles(L) {
+      var spots = [[52, 58, 2.4, 0], [66, 59, 1.8, 90], [58, 57, 1.3, 170], [71, 56, 2.1, 250]];
+      for (var b = 0; b < spots.length; b++) {
+        var p = spots[b];
+        fx(L.fxFront, 'circle', { cx: p[0], cy: p[1], r: p[2], fill: 'none', stroke: '#f4fdff', 'stroke-width': 1.2, 'vector-effect': 'non-scaling-stroke' }, [
+          { transform: 'translateY(0) scale(.4)', opacity: 0 },
+          { transform: 'translateY(-4px) scale(1)', opacity: 1, offset: .4 },
+          { transform: 'translateY(-9px) scale(1.5)', opacity: 0 }
+        ], { duration: 520, delay: p[3], easing: 'ease-out', fill: 'backwards' });
+      }
+    }
+
+    // 나올 때: 물이 밝게 일렁이고 고리가 퍼지며 물방울이 튄다
+    function waterUp(L, hole) {
+      L.rings[0].setAttribute('opacity', 1);
+      L.rings[1].setAttribute('opacity', 1);
+      if (reduceMotion || !hole.animate) return;
+      var grow = [{ transform: 'scale(.3)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }];
+      L.rings[0].animate(grow, { duration: 320, easing: EASE });
+      L.rings[1].animate(grow, { duration: 320, easing: EASE });
+      poolTint(L, '#f4fdff', .35);
+      ripple(L, 0);
+      ripple(L, 160);
+      puff(hole);
+    }
+    // 들어갈 때: 물이 어두워지며 고리가 안으로 말려 들고 거품이 올라온다
+    function waterDown(L) {
+      if (reduceMotion || !L.img.animate) { hideRings(L); return; }
+      var shrink = [{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(.4)', opacity: 0 }];
+      L.rings[0].animate(shrink, { duration: 300, easing: 'ease-in', fill: 'forwards' }).onfinish = function () { this.cancel(); };
+      L.rings[1].animate(shrink, { duration: 300, easing: 'ease-in', fill: 'forwards' }).onfinish = function () { this.cancel(); };
+      setTimeout(function () { hideRings(L); }, 290);
+      poolTint(L, '#0e5a74', .3);
+      swirl(L, 0);
+      bubbles(L);
+    }
+    function hideRings(L) {
+      L.rings[0].setAttribute('opacity', 0);
+      L.rings[1].setAttribute('opacity', 0);
+    }
+
+    var timers = [];
+    var current = -1;      // 지금 해달이 있는 자리
+    var phase = 'none';    // none, peek, rising, up, cheer, sinking
+    var lastFake = false;  // 방금 해달이 나오다 말았는지
+    function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+    function clearTimers() { for (var t = 0; t < timers.length; t++) clearTimeout(timers[t]); timers = []; }
+
+    // 다음 해달: 가끔은 나오다 만다
+    function next(prev) {
+      var i = Otter.nextSpot(prev, Math.random());
+      if (Otter.isFake(lastFake, Math.random())) peek(i);
+      else rise(i);
+    }
+
+    // 빼꼼 고개만 내밀었다가 쏙 들어가고, 곧 다른 자리에서 진짜 해달이 나온다
+    function peek(i) {
+      var L = layers[i];
+      current = i;
+      phase = 'peek';
+      lastFake = true;
+      waterUp(L, holes[i]);
+      sfx.rise(true);
+      var t = 0;
+      Otter.PEEK.forEach(function (f) {
+        later(function () { showFrame(L, f[0]); }, t);
+        t += f[1];
+      });
+      later(function () { retreat(i); }, t + Otter.PEEK_HOLD);
+    }
+
+    // 빼꼼하던 해달이 쏙 들어가고, 곧 다른 자리에서 진짜 해달이 나온다
+    function retreat(i) {
+      var L = layers[i];
+      phase = 'sinking';
+      waterDown(L);
+      sfx.sink(true);
+      var t = 0;
+      Otter.PEEK_BACK.forEach(function (f) {
+        later(function () { showFrame(L, f[0]); }, t);
+        t += f[1];
+      });
+      later(function () {
+        hideOtter(L);
+        current = -1;
+        phase = 'none';
+        if (state.running) later(function () { rise(Otter.afterPeek(i, Math.random())); }, Otter.AFTER_PEEK);
+      }, t);
+    }
+
+    function rise(i) {
+      var L = layers[i];
+      lastFake = false;
+      current = i;
+      phase = 'rising';
+      waterUp(L, holes[i]);
+      sfx.rise();
+      var t = 0;
+      Otter.RISE.forEach(function (f) {
+        later(function () { showFrame(L, f[0]); }, t);
+        t += f[1];
+      });
+      later(function () { phase = 'up'; showFrame(L, '05_idle'); }, t);
+      later(function () { showFrame(L, '06_blink'); }, t + Otter.BLINK[0]);
+      later(function () { showFrame(L, '05_idle'); }, t + Otter.BLINK[0] + Otter.BLINK[1]);
+      later(function () { sink(i); }, t + Otter.STAY);
+    }
+
+    // quiet: 쓰다듬은 뒤 들어갈 땐 거품 소리를 내지 않는다
+    function sink(i, quiet) {
+      var L = layers[i];
+      phase = 'sinking';
+      if (!quiet) sfx.sink();
+      waterDown(L);
+      var t = 0;
+      Otter.SINK.forEach(function (f) {
+        later(function () { showFrame(L, f[0]); }, t);
+        t += f[1];
+      });
+      later(function () {
+        hideOtter(L);
+        current = -1;
+        phase = 'none';
+        if (state.running) later(function () { next(i); }, Otter.GAP);
+      }, t);
+    }
+
+    // 쓰다듬으면 움찔했다가 기뻐하고, 1점을 얻은 뒤 들어간다
+    function pet(i) {
+      var L = layers[i];
+      clearTimers();
+      phase = 'cheer';
+      state = Otter.pet(state);
+      sfx.pet();
+      render();
+      showFrame(L, '07_touch');
+      if (!reduceMotion && scoreEl.animate) {
+        scoreEl.animate([{ transform: 'scale(1.35)' }, { transform: 'scale(1)' }], { duration: 360, easing: EASE });
+        poolTint(L, '#f4fdff', .45);
+        hearts(L);
+        ripple(L, 0);
+      }
+      later(function () {
+        showFrame(L, '08_cheer');
+        if (!reduceMotion) puff(holes[i]);
+      }, Otter.TOUCH);
+      later(function () { sink(i, true); }, Otter.TOUCH + Otter.CHEER);
+    }
+    for (var r = 0; r < holes.length; r++) {
+      holes[r].addEventListener('pointerdown', function () {
+        var i = +this.dataset.i;
+        if (i !== current) return;
+        if (phase === 'rising' || phase === 'up') pet(i);
+        // 나오다 마는 녀석은 만져도 점수가 없다(사용자 규칙). 물만 튀기고 바로 쏙 들어간다
+        else if (phase === 'peek') {
+          clearTimers();
+          puff(holes[i]);
+          sfx.splash();
+          retreat(i);
+        }
+      });
+    }
+
+    function beginOtters() {
+      clearTimers();
+      for (var l = 0; l < layers.length; l++) hideOtter(layers[l]);
+      current = -1;
+      phase = 'none';
+      lastFake = false;
+      later(function () { next(-1); }, Otter.FIRST);
+    }
+    // 시간이 끝나면 나와 있던 해달도 들어간다
+    function endOtters() {
+      if (phase === 'peek' || phase === 'rising' || phase === 'up' || phase === 'cheer') {
+        clearTimers();
+        sink(current);
+      } else if (phase === 'none') {
+        clearTimers();
+      }
+    }
+
+    render();
+  })();
+</script>
+</body>
+</html>

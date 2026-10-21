@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>냥토 가위바위보</title>
+<link rel="icon" href="img/cat-win.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<script>
+  // 홈페이지에서 고른 라이트/다크 테마를 틀 색에 적용
+  (function () {
+    var mode = 'auto', hue = 250;
+    try {
+      mode = localStorage.getItem('hooni-theme') || 'auto';
+      var h = parseInt(localStorage.getItem('hooni-hue'), 10);
+      if (!isNaN(h)) hue = h;
+    } catch (e) {}
+    var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.style.setProperty('--hue', hue);
+  })();
+</script>
+<style>
+  :root {
+    --hue: 250;
+    --page-bg: oklch(0.95 0.01 var(--hue));
+    /* 1u = 게임판 너비의 1%. 화면이 낮으면 높이에 맞춰 줄어든다 */
+    --fw: min(100vw, 480px);
+    --u: min(calc(var(--fw) / 100), calc(100vh / 180));
+    --line: #3b2314;
+    --wood: #c4834a;
+    --wood-dark: #8a4f26;
+    --wood-light: #e0a868;
+    --cream: #fff6e2;
+    --gold: #f5b83d;
+    --blue: #3d7bfd;
+    --pink: #f0628a;
+    --boing: cubic-bezier(.34, 1.7, .5, 1);
+  }
+  @supports (height: 100dvh) {
+    :root { --u: min(calc(var(--fw) / 100), calc(100dvh / 180)); }
+  }
+  :root.dark { --page-bg: oklch(0.16 0.014 var(--hue)); }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    font-family: "Jua", "Noto Sans KR", system-ui, sans-serif;
+    color: var(--line);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  img { display: block; -webkit-user-drag: none; pointer-events: none; }
+  button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+
+  /* ---------- 게임판 틀 ---------- */
+  .frame {
+    position: relative;
+    width: var(--fw);
+    height: 100vh;
+    height: 100dvh;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #9fd3f5 url(img/bg.png) center 78% / cover no-repeat;
+  }
+  @media (min-width: 481px) {
+    .frame { box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 20px 60px -20px rgba(0,0,0,.35); }
+  }
+  .game {
+    position: relative;
+    width: calc(var(--u) * 100);
+    height: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- 상단 바 ---------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(var(--u) * 2.5) calc(var(--u) * 3) 0;
+    padding-top: max(calc(var(--u) * 2.5), env(safe-area-inset-top));
+  }
+  .icon-btn { width: calc(var(--u) * 12); }
+  .icon-btn img { width: 100%; }
+  .icon-btn:active { transform: scale(.92); }
+  .sound { position: relative; }
+  .sound.off img { filter: grayscale(.7) brightness(.95); }
+  .sound.off::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 72%; height: calc(var(--u) * 1.6);
+    background: var(--line);
+    border: calc(var(--u) * .45) solid var(--cream);
+    border-radius: 99px;
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+
+  /* ---------- 점수판 ---------- */
+  .boards {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: calc(var(--u) * 1);
+    margin-top: calc(var(--u) * 2);
+  }
+  .board { position: relative; width: calc(var(--u) * 21); }
+  .board img { width: 100%; }
+  .board .num {
+    position: absolute;
+    left: 50%; top: 74%;
+    transform: translate(-50%, -50%);
+    font-size: calc(var(--u) * 9.5);
+    line-height: 1;
+    color: #fff;
+    -webkit-text-stroke: calc(var(--u) * .9) var(--line);
+    paint-order: stroke fill;
+  }
+  .vs { width: calc(var(--u) * 48); margin-bottom: calc(var(--u) * 1); }
+  .vs img { width: 100%; }
+
+  /* ---------- 무대 ---------- */
+  .stage { position: relative; flex: 1; min-height: 0; }
+
+  .callout {
+    position: absolute;
+    left: 50%; top: calc(var(--u) * 6);
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: calc(var(--u) * 9);
+    color: #fff;
+    -webkit-text-stroke: calc(var(--u) * 1.4) var(--line);
+    paint-order: stroke fill;
+    text-shadow: 0 calc(var(--u) * 1) 0 var(--line);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 6;
+  }
+  .callout.show { animation: callout 1.5s var(--boing) forwards; }
+
+  .banner {
+    position: absolute;
+    left: 50%; top: calc(var(--u) * 3);
+    width: calc(var(--u) * 72);
+    transform: translateX(-50%) scale(0);
+    pointer-events: none;
+    z-index: 6;
+  }
+  .banner img { width: 100%; }
+  .banner.show { animation: bannerPop .55s var(--boing) forwards; }
+  .banner.show img { animation: float 1.4s ease-in-out .55s infinite; }
+
+  .chr {
+    position: absolute;
+    bottom: calc(var(--u) * -6);
+    width: calc(var(--u) * 44);
+    z-index: 2;
+  }
+  .chr.me { left: calc(var(--u) * 3); aspect-ratio: 275 / 381; }
+  .chr.rival { right: calc(var(--u) * 3); aspect-ratio: 278 / 397; }
+  .chr { cursor: pointer; }
+  .chr .body {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 88%;
+    animation: breathe 1.7s ease-in-out infinite;
+  }
+  .chr.rival .body { animation-delay: -.85s; }
+  .pose { position: absolute; opacity: 0; }
+  .pose.idle { left: 0; top: 0; width: 100%; }
+  .chr[data-pose="idle"] .pose.idle,
+  .chr[data-pose="attack"] .pose.attack,
+  .chr[data-pose="win"] .pose.win,
+  .chr[data-pose="lose"] .pose.lose { opacity: 1; }
+  /* 상반신 포즈는 대기 포즈와 얼굴 크기·위치가 맞도록 배치 */
+  .me .pose.win    { width: 103%; left: 2.5%; top: 10.8%; }
+  .me .pose.attack { width: 102%; left: 3%;   top: 13%; }
+  .me .pose.lose   { width: 94%;  left: 5%;   top: 5%; }
+  .rival .pose.win    { width: 98.5%; left: 1.4%;  top: -8%; }
+  .rival .pose.attack { width: 102%;  left: -1.6%; top: -10%; }
+  .rival .pose.lose   { width: 94%;   left: 2%;    top: -1%; }
+
+  .chr.hop .body { animation: hop .36s cubic-bezier(.3, .8, .4, 1); }
+  .chr.won .body { animation: jump .62s cubic-bezier(.3, .8, .4, 1) 3; }
+  .chr.lost .body { animation: droop .7s ease-out forwards; }
+  .chr.tie .body { animation: tilt .9s ease-in-out; }
+  .chr.poke .body { animation: squish .5s var(--boing); }
+
+  /* 가위! 바위! 보! 구호 */
+  .shout {
+    position: absolute;
+    left: 50%; top: calc(var(--u) * 8);
+    white-space: nowrap;
+    font-size: calc(var(--u) * 15);
+    line-height: 1;
+    color: #fff;
+    -webkit-text-stroke: calc(var(--u) * 1.8) var(--line);
+    paint-order: stroke fill;
+    text-shadow: 0 calc(var(--u) * 1.4) 0 var(--line);
+    transform: translateX(-50%) scale(0);
+    pointer-events: none;
+    z-index: 6;
+  }
+  .shout[data-beat="0"] { color: #8fc3ff; }
+  .shout[data-beat="1"] { color: #ff9db6; }
+  .shout[data-beat="2"] { color: #ffd370; }
+  .shout.show { animation: shoutPop .34s var(--boing) forwards; }
+
+  .hand {
+    position: absolute;
+    /* 무대가 높으면 귀 위로 올라가고, 낮으면 배너와 안 겹치게 내려온다 */
+    bottom: clamp(calc(var(--u) * 54), calc(100% - var(--u) * 54), calc(var(--u) * 64));
+    width: calc(var(--u) * 22);
+    transform: scale(0);
+    z-index: 3;
+  }
+  .hand.me { left: calc(50% - var(--u) * 24); }
+  .hand.rival { left: calc(50% + var(--u) * 2); }
+  .hand img { width: 100%; filter: drop-shadow(0 calc(var(--u) * .8) 0 rgba(59,35,20,.5)); }
+  .hand.me.show { animation: throwL .45s var(--boing) forwards; }
+  .hand.rival.show { animation: throwR .45s var(--boing) forwards; }
+  .hand.show.beaten { animation: none; transform: scale(.82) rotate(0); filter: grayscale(.6) brightness(.85); transition: transform .3s, filter .3s; }
+  .hand.show.winner { animation: none; transform: scale(1.12); transition: transform .3s var(--boing); }
+
+  .fx { position: absolute; opacity: 0; pointer-events: none; z-index: 5; }
+  .fx img { width: 100%; }
+  .fx.win { width: calc(var(--u) * 20); bottom: calc(var(--u) * 40); }
+  .fx.lose { width: calc(var(--u) * 11); bottom: calc(var(--u) * 36); }
+  .fx.draw { width: calc(var(--u) * 22); bottom: clamp(calc(var(--u) * 58), calc(100% - var(--u) * 50), calc(var(--u) * 68)); left: calc(50% - var(--u) * 11); }
+  .fx.at-me.win { left: 0; }
+  .fx.at-rival.win { right: 0; }
+  .fx.at-me.lose { left: calc(var(--u) * 5); }
+  .fx.at-rival.lose { right: calc(var(--u) * 5); }
+  .fx.at-rival.win img, .fx.at-me.lose img { transform: scaleX(-1); }
+  .fx.show.win { animation: sparkle 1.3s ease-out forwards; }
+  .fx.show.lose { animation: drip 1.3s ease-in forwards; }
+  .fx.show.draw { animation: puff 1.2s ease-out forwards; }
+
+
+  .hedge {
+    /* 화면 너비 전체를 덮고, 버튼판 둥근 모서리 뒤까지 내려간다 */
+    position: absolute;
+    left: calc(var(--u) * -100);
+    width: calc(var(--u) * 300);
+    bottom: calc(var(--u) * -9);
+    height: calc(var(--u) * 23);
+    z-index: 3;
+    pointer-events: none;
+  }
+  .hedge svg { width: 100%; height: 100%; }
+
+  /* ---------- 버튼 판 ---------- */
+  .panel {
+    position: relative;
+    z-index: 4;
+    flex: none;
+    align-self: center;
+    width: var(--fw);
+    display: flex;
+    justify-content: center;
+    gap: calc(var(--u) * 4);
+    padding: calc(var(--u) * 4) calc(var(--u) * 4) calc(var(--u) * 5);
+    padding-bottom: max(calc(var(--u) * 5), env(safe-area-inset-bottom));
+    background: linear-gradient(var(--wood-light), var(--wood) calc(var(--u) * 3), var(--wood) 70%, #b06f3a);
+    border: calc(var(--u) * .8) solid var(--line);
+    border-bottom: 0;
+    border-radius: calc(var(--u) * 7) calc(var(--u) * 7) 0 0;
+    box-shadow: inset 0 calc(var(--u) * 1.2) 0 rgba(255,255,255,.35), inset 0 calc(var(--u) * -2) 0 rgba(0,0,0,.12);
+  }
+  .panel::before {
+    /* 나뭇결 */
+    content: "";
+    position: absolute;
+    inset: calc(var(--u) * 2) calc(var(--u) * 3);
+    background: repeating-linear-gradient(transparent 0 calc(var(--u) * 5.5), rgba(138,79,38,.35) calc(var(--u) * 5.5) calc(var(--u) * 5.9));
+    border-radius: calc(var(--u) * 4);
+    pointer-events: none;
+  }
+  .pick {
+    position: relative;
+    width: calc(var(--u) * 26);
+    animation: bob 1.8s ease-in-out infinite;
+  }
+  .pick:nth-child(2) { animation-delay: -.6s; }
+  .pick:nth-child(3) { animation-delay: -1.2s; }
+  .pick img { width: 100%; transition: transform .25s var(--boing); filter: drop-shadow(0 calc(var(--u) * 1.2) 0 rgba(59,35,20,.55)); }
+  .pick:hover img { transform: scale(1.07) rotate(-3deg); }
+  .pick:active img { transform: scale(.86, .8) translateY(calc(var(--u) * 2)); transition-duration: .07s; }
+  .pick.chosen img { animation: squish .5s var(--boing); }
+  .panel.locked .pick { animation-play-state: paused; cursor: default; }
+  .panel.locked .pick:not(.chosen) img { filter: grayscale(.55) brightness(.8) drop-shadow(0 calc(var(--u) * 1.2) 0 rgba(59,35,20,.55)); transform: scale(.94); }
+  .pick:focus-visible { outline: calc(var(--u) * 1) solid #fff; outline-offset: calc(var(--u) * .5); border-radius: calc(var(--u) * 6); }
+
+  /* ---------- 결과 카드 ---------- */
+  .end {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    background: rgba(31, 35, 41, .5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .3s, visibility 0s .3s;
+  }
+  .end.show { opacity: 1; visibility: visible; transition: opacity .3s; }
+  .card {
+    width: calc(var(--u) * 84);
+    padding: calc(var(--u) * 3) calc(var(--u) * 5) calc(var(--u) * 6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--u) * 3);
+    background: var(--cream);
+    border: calc(var(--u) * .9) solid var(--line);
+    border-radius: calc(var(--u) * 7);
+    box-shadow: 0 calc(var(--u) * 1.6) 0 var(--line);
+    transform: scale(.3);
+  }
+  .end.show .card { animation: cardPop .6s var(--boing) forwards; }
+  .card .result { width: 92%; margin-top: calc(var(--u) * -12); animation: float 1.6s ease-in-out infinite; }
+  .card .result img { width: 100%; }
+  .final {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 4);
+    font-size: calc(var(--u) * 14);
+    line-height: 1;
+  }
+  .final b { font-weight: 400; color: #fff; -webkit-text-stroke: calc(var(--u) * 1.4) var(--line); paint-order: stroke fill; }
+  .final .m { color: var(--blue); }
+  .final .r { color: var(--pink); }
+  .final .s { font-size: calc(var(--u) * 9); }
+  .again {
+    margin-top: calc(var(--u) * 1);
+    padding: calc(var(--u) * 3) calc(var(--u) * 10);
+    font-size: calc(var(--u) * 7);
+    color: #fff;
+    -webkit-text-stroke: calc(var(--u) * 1) var(--line);
+    paint-order: stroke fill;
+    background: linear-gradient(#ffd370, var(--gold));
+    border: calc(var(--u) * .8) solid var(--line);
+    border-radius: 99px;
+    box-shadow: inset 0 calc(var(--u) * 1) 0 rgba(255,255,255,.55), 0 calc(var(--u) * 1.4) 0 var(--line);
+    animation: bob 1.6s ease-in-out infinite;
+    transition: transform .2s var(--boing);
+  }
+  .again:hover { transform: scale(1.06); }
+  .again:active { transform: scale(.9) translateY(calc(var(--u) * 1)); box-shadow: inset 0 calc(var(--u) * 1) 0 rgba(255,255,255,.55), 0 calc(var(--u) * .4) 0 var(--line); }
+
+  /* ---------- 통통 애니메이션 ---------- */
+  @keyframes breathe {
+    0%, 100% { transform: translateY(0) scale(1, 1); }
+    12%  { transform: translateY(0) scale(1.05, .94); }
+    35%  { transform: translateY(calc(var(--u) * -2.6)) scale(.97, 1.04); }
+    55%  { transform: translateY(0) scale(1.04, .95); }
+    70%  { transform: translateY(0) scale(.99, 1.01); }
+  }
+  @keyframes hop {
+    0%   { transform: translateY(0) scale(1.08, .9); }
+    45%  { transform: translateY(calc(var(--u) * -4)) scale(.95, 1.06); }
+    80%  { transform: translateY(0) scale(1.06, .93); }
+    100% { transform: translateY(0) scale(1, 1); }
+  }
+  @keyframes jump {
+    0%   { transform: translateY(0) scale(1.1, .88); }
+    40%  { transform: translateY(calc(var(--u) * -7)) scale(.94, 1.08); }
+    75%  { transform: translateY(0) scale(1.1, .9); }
+    100% { transform: translateY(0) scale(1, 1); }
+  }
+  @keyframes droop {
+    0%   { transform: translateY(0) rotate(0); }
+    25%  { transform: translateY(calc(var(--u) * .6)) rotate(-4deg); }
+    50%  { transform: translateY(calc(var(--u) * .8)) rotate(3deg); }
+    75%  { transform: translateY(calc(var(--u) * 1)) rotate(-1.5deg); }
+    100% { transform: translateY(calc(var(--u) * 1)) rotate(0); }
+  }
+  @keyframes tilt {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-7deg) scale(1.03, .97); }
+    55% { transform: rotate(6deg); }
+    80% { transform: rotate(-2deg); }
+  }
+  @keyframes squish {
+    0%   { transform: scale(1, 1); }
+    25%  { transform: scale(1.15, .85); }
+    50%  { transform: scale(.92, 1.1); }
+    75%  { transform: scale(1.04, .97); }
+    100% { transform: scale(1, 1); }
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(calc(var(--u) * -1.4)); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50% { transform: translateY(calc(var(--u) * -1.2)) rotate(1deg); }
+  }
+  @keyframes shoutPop {
+    0% { transform: translateX(-50%) scale(.2, .1) rotate(-8deg); }
+    60% { transform: translateX(-50%) scale(1.1, .92) rotate(2deg); }
+    100% { transform: translateX(-50%) scale(1) rotate(0); }
+  }
+  @keyframes throwL {
+    0% { transform: translate(calc(var(--u) * -14), calc(var(--u) * 6)) scale(.2) rotate(-90deg); }
+    100% { transform: translate(0, 0) scale(1) rotate(-8deg); }
+  }
+  @keyframes throwR {
+    0% { transform: translate(calc(var(--u) * 14), calc(var(--u) * 6)) scale(.2) rotate(90deg); }
+    100% { transform: translate(0, 0) scale(1) rotate(8deg); }
+  }
+  @keyframes bannerPop {
+    0% { transform: translateX(-50%) scale(0) rotate(-10deg); }
+    100% { transform: translateX(-50%) scale(1) rotate(0); }
+  }
+  @keyframes cardPop {
+    0% { transform: scale(.3) translateY(calc(var(--u) * 20)); }
+    100% { transform: scale(1) translateY(0); }
+  }
+  @keyframes callout {
+    0% { opacity: 0; transform: translateX(-50%) scale(.2); }
+    25% { opacity: 1; transform: translateX(-50%) scale(1); }
+    80% { opacity: 1; transform: translateX(-50%) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) scale(1.2, .6) translateY(calc(var(--u) * -4)); }
+  }
+  @keyframes sparkle {
+    0% { opacity: 0; transform: scale(.2) rotate(-30deg); }
+    30% { opacity: 1; transform: scale(1.15) rotate(6deg); }
+    50% { transform: scale(.95) rotate(-3deg); }
+    80% { opacity: 1; transform: scale(1) translateY(calc(var(--u) * -2)); }
+    100% { opacity: 0; transform: scale(1.1) translateY(calc(var(--u) * -4)); }
+  }
+  @keyframes drip {
+    0% { opacity: 0; transform: translateY(calc(var(--u) * -3)) scale(.6); }
+    25% { opacity: 1; transform: translateY(0) scale(1.1, .9); }
+    40% { transform: translateY(0) scale(.95, 1.05); }
+    80% { opacity: 1; transform: translateY(calc(var(--u) * 3)); }
+    100% { opacity: 0; transform: translateY(calc(var(--u) * 6)); }
+  }
+  @keyframes puff {
+    0% { opacity: 0; transform: scale(.3); }
+    30% { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 0; transform: scale(1.6) translateY(calc(var(--u) * -6)); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chr .body, .pick, .banner.show img, .card .result, .again { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="game">
+    <header class="topbar">
+      <button type="button" class="icon-btn" id="homeBtn" aria-label="홈으로"><img src="img/btn-home.png" alt=""></button>
+      <button type="button" class="icon-btn sound" id="soundBtn" aria-label="소리 끄기"><img src="img/btn-sound.png" alt=""></button>
+    </header>
+
+    <div class="boards">
+      <div class="board" id="boardMe"><img src="img/board-me.png" alt="나"><span class="num" id="scoreMe">0</span></div>
+      <div class="vs"><img src="img/vs.png" alt="고양이 대 토끼"></div>
+      <div class="board" id="boardRival"><img src="img/board-rival.png" alt="상대"><span class="num" id="scoreRival">0</span></div>
+    </div>
+
+    <main class="stage" id="stage">
+      <div class="callout" id="callout">먼저 3승!</div>
+      <div class="banner" id="banner"><img alt=""></div>
+
+      <div class="shout" id="shout" aria-live="polite"></div>
+
+      <div class="chr me" id="chrMe" data-pose="idle">
+        <div class="body">
+          <img class="pose idle" src="img/cat-idle.png" alt="고양이">
+          <img class="pose attack" src="img/cat-attack.png" alt="">
+          <img class="pose win" src="img/cat-win.png" alt="">
+          <img class="pose lose" src="img/cat-lose.png" alt="">
+        </div>
+      </div>
+      <div class="chr rival" id="chrRival" data-pose="idle">
+        <div class="body">
+          <img class="pose idle" src="img/rabbit-idle.png" alt="토끼">
+          <img class="pose attack" src="img/rabbit-attack.png" alt="">
+          <img class="pose win" src="img/rabbit-win.png" alt="">
+          <img class="pose lose" src="img/rabbit-lose.png" alt="">
+        </div>
+      </div>
+
+      <div class="hand me" id="handMe"><img alt=""></div>
+      <div class="hand rival" id="handRival"><img alt=""></div>
+
+      <div class="fx win" id="fxWin"><img src="img/fx-win.png" alt=""></div>
+      <div class="fx lose" id="fxLose"><img src="img/fx-lose.png" alt=""></div>
+      <div class="fx draw" id="fxDraw"><img src="img/fx-draw.png" alt=""></div>
+
+      <div class="hedge" aria-hidden="true">
+        <svg viewBox="-100 0 300 23" aria-hidden="true">
+          <defs>
+            <linearGradient id="leaf" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#7cc95e"/>
+              <stop offset=".35" stop-color="#4f9e43"/>
+              <stop offset="1" stop-color="#3a7c34"/>
+            </linearGradient>
+          </defs>
+          <path fill="url(#leaf)" stroke="#2f5a26" stroke-width=".6" d="M-100 23V8C-99.0 3.0 -89.0 3.0 -88.0 8C-87.0 3.8 -76.0 3.8 -75.0 8C-74.0 2.4 -66.0 2.4 -65.0 8C-64.0 3.0 -56.0 3.0 -55.0 8C-54.0 1.8 -46.0 1.8 -45.0 8C-44.0 3.8 -33.0 3.8 -32.0 8C-31.0 1.8 -23.0 1.8 -22.0 8C-21.0 3.8 -13.0 3.8 -12.0 8C-11.0 1.8 -3.0 1.8 -2.0 8C-1.0 3.0 7.0 3.0 8.0 8C9.0 2.4 18.0 2.4 19.0 8C20.0 3.0 31.0 3.0 32.0 8C33.0 3.0 43.0 3.0 44.0 8C45.0 3.0 53.0 3.0 54.0 8C55.0 3.8 63.0 3.8 64.0 8C65.0 3.0 73.0 3.0 74.0 8C75.0 2.4 86.0 2.4 87.0 8C88.0 1.8 99.0 1.8 100.0 8C101.0 3.0 111.0 3.0 112.0 8C113.0 3.0 122.0 3.0 123.0 8C124.0 1.8 134.0 1.8 135.0 8C136.0 1.8 146.0 1.8 147.0 8C148.0 3.8 156.0 3.8 157.0 8C158.0 3.0 169.0 3.0 170.0 8C171.0 1.8 180.0 1.8 181.0 8C182.0 3.8 193.0 3.8 194.0 8C195.0 2.4 205.0 2.4 206.0 8V23Z"/>
+          <g fill="#a6dc7e" opacity=".75"><ellipse cx="-94.0" cy="4.9" rx="2.6" ry=".9"/><ellipse cx="-81.5" cy="5.4" rx="2.9" ry=".9"/><ellipse cx="-70.0" cy="4.5" rx="2.2" ry=".9"/><ellipse cx="-60.0" cy="4.9" rx="2.2" ry=".9"/><ellipse cx="-50.0" cy="4.2" rx="2.2" ry=".9"/><ellipse cx="-38.5" cy="5.4" rx="2.9" ry=".9"/><ellipse cx="-27.0" cy="4.2" rx="2.2" ry=".9"/><ellipse cx="-17.0" cy="5.4" rx="2.2" ry=".9"/><ellipse cx="-7.0" cy="4.2" rx="2.2" ry=".9"/><ellipse cx="3.0" cy="4.9" rx="2.2" ry=".9"/><ellipse cx="13.5" cy="4.5" rx="2.4" ry=".9"/><ellipse cx="25.5" cy="4.9" rx="2.9" ry=".9"/><ellipse cx="38.0" cy="4.9" rx="2.6" ry=".9"/><ellipse cx="49.0" cy="4.9" rx="2.2" ry=".9"/><ellipse cx="59.0" cy="5.4" rx="2.2" ry=".9"/><ellipse cx="69.0" cy="4.9" rx="2.2" ry=".9"/><ellipse cx="80.5" cy="4.5" rx="2.9" ry=".9"/><ellipse cx="93.5" cy="4.2" rx="2.9" ry=".9"/><ellipse cx="106.0" cy="4.9" rx="2.6" ry=".9"/><ellipse cx="117.5" cy="4.9" rx="2.4" ry=".9"/><ellipse cx="129.0" cy="4.2" rx="2.6" ry=".9"/><ellipse cx="141.0" cy="4.2" rx="2.6" ry=".9"/><ellipse cx="152.0" cy="5.4" rx="2.2" ry=".9"/><ellipse cx="163.5" cy="4.9" rx="2.9" ry=".9"/><ellipse cx="175.5" cy="4.2" rx="2.4" ry=".9"/><ellipse cx="187.5" cy="5.4" rx="2.9" ry=".9"/><ellipse cx="200.0" cy="4.5" rx="2.6" ry=".9"/></g>
+          <g fill="#fff"><circle cx="-80.8" cy="8.9" r="1.1"/><circle cx="-59.5" cy="8.8" r="1.1"/><circle cx="-37.9" cy="8.9" r="1.1"/><circle cx="-16.5" cy="8.9" r="1.1"/><circle cx="3.5" cy="8.8" r="1.1"/><circle cx="26.1" cy="8.8" r="1.1"/><circle cx="49.5" cy="8.8" r="1.3"/><circle cx="69.5" cy="8.8" r="1.3"/><circle cx="94.2" cy="8.6" r="1.3"/><circle cx="118.0" cy="8.8" r="1.1"/><circle cx="141.6" cy="8.6" r="1.3"/><circle cx="164.2" cy="8.8" r="1.3"/><circle cx="188.2" cy="8.9" r="1.1"/></g>
+          <g fill="#f5b83d"><circle cx="-80.8" cy="8.9" r="0.44"/><circle cx="-59.5" cy="8.8" r="0.44"/><circle cx="-37.9" cy="8.9" r="0.44"/><circle cx="-16.5" cy="8.9" r="0.44"/><circle cx="3.5" cy="8.8" r="0.44"/><circle cx="26.1" cy="8.8" r="0.44"/><circle cx="49.5" cy="8.8" r="0.52"/><circle cx="69.5" cy="8.8" r="0.52"/><circle cx="94.2" cy="8.6" r="0.52"/><circle cx="118.0" cy="8.8" r="0.44"/><circle cx="141.6" cy="8.6" r="0.52"/><circle cx="164.2" cy="8.8" r="0.52"/><circle cx="188.2" cy="8.9" r="0.44"/></g>
+        </svg>
+      </div>
+    </main>
+
+    <nav class="panel" id="panel">
+      <button type="button" class="pick" data-hand="scissors" aria-label="가위"><img src="img/btn-scissors.png" alt=""></button>
+      <button type="button" class="pick" data-hand="rock" aria-label="바위"><img src="img/btn-rock.png" alt=""></button>
+      <button type="button" class="pick" data-hand="paper" aria-label="보"><img src="img/btn-paper.png" alt=""></button>
+    </nav>
+  </div>
+
+  <div class="end" id="end" role="dialog" aria-modal="true" aria-labelledby="endScore">
+    <div class="card">
+      <div class="result"><img id="endBanner" alt=""></div>
+      <div class="final" id="endScore"><b class="m" id="endMe">3</b><b class="s">:</b><b class="r" id="endRival">0</b></div>
+      <button type="button" class="again" id="againBtn">한 판 더!</button>
+    </div>
+  </div>
+</div>
+
+<script id="logic">
+  // 게임 규칙: DOM 없이 Node에서도 시험할 수 있는 순수 함수
+  var RPS = (function () {
+    var HANDS = ['scissors', 'rock', 'paper'];
+    var BEATS = { scissors: 'paper', rock: 'scissors', paper: 'rock' };
+    var TARGET = 3;
+    function judge(me, rival) {
+      if (me === rival) return 'draw';
+      return BEATS[me] === rival ? 'win' : 'lose';
+    }
+    function newMatch() { return { me: 0, rival: 0, winner: null }; }
+    function pickRival(rand) { return HANDS[Math.min(2, Math.floor(rand * 3))]; }
+    // 한 판을 치르고 새 상태를 돌려준다.
+    function play(state, me, rival) {
+      if (state.winner) throw new Error('match over');
+      var result = judge(me, rival);
+      var next = { me: state.me, rival: state.rival, winner: null };
+      if (result === 'win') next.me++;
+      if (result === 'lose') next.rival++;
+      if (next.me >= TARGET) next.winner = 'me';
+      else if (next.rival >= TARGET) next.winner = 'rival';
+      return { result: result, state: next };
+    }
+    return { HANDS: HANDS, TARGET: TARGET, judge: judge, newMatch: newMatch, pickRival: pickRival, play: play };
+  })();
+  if (typeof module !== 'undefined') module.exports = RPS;
+</script>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  // ---------- 소리 (Web Audio 합성) ----------
+  var soundOn = load('hooni-rps-sound') !== 'off';
+  var ac = null;
+  function ctx() {
+    if (!soundOn) return null;
+    if (!ac) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ac = new AC();
+    }
+    if (ac.state === 'suspended') ac.resume();
+    return ac;
+  }
+  function tone(freq, start, dur, type, vol, toFreq) {
+    var a = ctx(); if (!a) return;
+    var t = a.currentTime + start;
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'square';
+    o.frequency.setValueAtTime(freq, t);
+    if (toFreq) o.frequency.exponentialRampToValueAtTime(toFreq, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.12, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  var sfx = {
+    tap: function () { tone(660, 0, 0.07, 'triangle', 0.15, 990); },
+    beat: function (i) { tone([523, 587, 784][i], 0, 0.12, 'square', 0.08); tone([262, 294, 392][i], 0, 0.14, 'triangle', 0.12); },
+    reveal: function () { tone(220, 0, 0.16, 'sine', 0.22, 880); },
+    win: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.08, 0.16, 'square', 0.07); tone(f / 2, i * 0.08, 0.18, 'triangle', 0.1); }); },
+    lose: function () { tone(392, 0, 0.18, 'triangle', 0.14, 330); tone(330, 0.18, 0.32, 'triangle', 0.14, 196); },
+    draw: function () { tone(300, 0, 0.12, 'sine', 0.18, 520); tone(520, 0.12, 0.16, 'sine', 0.16, 300); },
+    fanfare: function () { [523, 659, 784, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.11, 0.2, 'square', 0.07); tone(f / 2, i * 0.11, 0.22, 'triangle', 0.1); }); },
+    sad: function () { [392, 370, 349, 262].forEach(function (f, i) { tone(f, i * 0.2, 0.26, 'triangle', 0.14); }); }
+  };
+  var soundBtn = $('soundBtn');
+  function renderSound() {
+    soundBtn.classList.toggle('off', !soundOn);
+    soundBtn.setAttribute('aria-label', soundOn ? '소리 끄기' : '소리 켜기');
+  }
+  renderSound();
+  soundBtn.addEventListener('click', function () {
+    soundOn = !soundOn;
+    save('hooni-rps-sound', soundOn ? 'on' : 'off');
+    renderSound();
+    sfx.tap();
+  });
+
+
+  // ---------- 화면 도우미 ----------
+  function restart(el, cls) {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+  var timers = [];
+  function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
+  function setPose(who, pose, motion) {
+    var el = who === 'me' ? chrMe : chrRival;
+    el.dataset.pose = pose;
+    el.classList.remove('hop', 'won', 'lost', 'tie', 'poke');
+    if (motion) restart(el, motion);
+  }
+  var CHANT = ['가위!', '바위!', '보!'];
+  function shout(i) {
+    var el = $('shout');
+    el.textContent = CHANT[i];
+    el.dataset.beat = i;
+    restart(el, 'show');
+  }
+  function hideAll() {
+    [$('shout'), handMe, handRival, $('banner'), $('fxWin'), $('fxLose'), $('fxDraw')].forEach(function (el) {
+      el.classList.remove('show', 'beaten', 'winner', 'at-me', 'at-rival');
+    });
+  }
+
+  var chrMe = $('chrMe'), chrRival = $('chrRival');
+  var handMe = $('handMe'), handRival = $('handRival');
+  var panel = $('panel'), picks = panel.querySelectorAll('.pick');
+  var state = RPS.newMatch();
+  var busy = false;
+
+  function renderScore() {
+    $('scoreMe').textContent = state.me;
+    $('scoreRival').textContent = state.rival;
+  }
+
+  function lock(on, chosen) {
+    busy = on;
+    panel.classList.toggle('locked', on);
+    picks.forEach(function (b) {
+      b.disabled = on;
+      b.classList.toggle('chosen', !!chosen && b.dataset.hand === chosen);
+    });
+  }
+
+  function startMatch() {
+    timers.forEach(clearTimeout); timers = [];
+    state = RPS.newMatch();
+    hideAll();
+    setPose('me', 'idle'); setPose('rival', 'idle');
+    renderScore();
+    lock(false);
+    $('end').classList.remove('show');
+    restart($('callout'), 'show');
+  }
+
+  function playRound(mine) {
+    if (busy || state.winner) return;
+    var theirs = RPS.pickRival(Math.random());
+    var out = RPS.play(state, mine, theirs);
+    lock(true, mine);
+    hideAll();
+    $('callout').classList.remove('show');
+    sfx.tap();
+
+    // 가위! 바위! 보! 세 박자
+    [0, 1, 2].forEach(function (i) {
+      later(120 + i * 380, function () {
+        setPose('me', 'attack', 'hop'); setPose('rival', 'attack', 'hop');
+        shout(i);
+        sfx.beat(i);
+      });
+    });
+
+    // 손 공개
+    later(1300, function () {
+      $('shout').classList.remove('show');
+      handMe.querySelector('img').src = 'img/btn-' + mine + '.png';
+      handRival.querySelector('img').src = 'img/btn-' + theirs + '.png';
+      restart(handMe, 'show'); restart(handRival, 'show');
+      sfx.reveal();
+    });
+
+    // 결과
+    later(1850, function () {
+      var r = out.result;
+      state = out.state;
+      var banner = $('banner');
+      banner.querySelector('img').src = 'img/banner-' + r + '.png';
+      restart(banner, 'show');
+      if (r === 'draw') {
+        setPose('me', 'idle', 'tie'); setPose('rival', 'idle', 'tie');
+        restart($('fxDraw'), 'show');
+        sfx.draw();
+      } else {
+        var w = r === 'win' ? 'me' : 'rival', l = r === 'win' ? 'rival' : 'me';
+        setPose(w, 'win', 'won'); setPose(l, 'lose', 'lost');
+        (w === 'me' ? handMe : handRival).classList.add('winner');
+        (l === 'me' ? handMe : handRival).classList.add('beaten');
+        var fw = $('fxWin'), fl = $('fxLose');
+        fw.classList.add('at-' + w); fl.classList.add('at-' + l);
+        restart(fw, 'show'); restart(fl, 'show');
+        renderScore();
+        (r === 'win' ? sfx.win : sfx.lose)();
+      }
+    });
+
+    // 다음 판 또는 결과 카드
+    later(3300, function () {
+      if (state.winner) { hideAll(); showEnd(); return; }
+      hideAll();
+      setPose('me', 'idle', 'poke'); setPose('rival', 'idle', 'poke');
+      lock(false);
+    });
+  }
+
+  function showEnd() {
+    var won = state.winner === 'me';
+    $('endBanner').src = 'img/banner-' + (won ? 'win' : 'lose') + '.png';
+    $('endMe').textContent = state.me;
+    $('endRival').textContent = state.rival;
+    $('end').classList.add('show');
+    (won ? sfx.fanfare : sfx.sad)();
+    later(400, function () { $('againBtn').focus({ preventScroll: true }); });
+  }
+
+  picks.forEach(function (b) {
+    b.addEventListener('click', function () { playRound(b.dataset.hand); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.repeat) return;
+    var h = { '1': 'scissors', '2': 'rock', '3': 'paper' }[e.key];
+    if (h) playRound(h);
+  });
+  $('againBtn').addEventListener('click', function () { sfx.tap(); startMatch(); });
+  $('homeBtn').addEventListener('click', function () { location.href = '../index.html'; });
+
+  // 한 번 튀는 동작이 끝나면 다시 숨쉬기로 돌아간다 (진 쪽은 결과가 끝날 때까지 축 처져 있음)
+  [chrMe, chrRival].forEach(function (el) {
+    el.querySelector('.body').addEventListener('animationend', function () {
+      el.classList.remove('hop', 'won', 'tie', 'poke');
+    });
+  });
+
+  // 캐릭터를 누르면 말랑하게 눌린다
+  [chrMe, chrRival].forEach(function (el) {
+    el.addEventListener('click', function () {
+      if (busy) return;
+      restart(el, 'poke');
+      tone(el === chrMe ? 880 : 1046, 0, 0.1, 'sine', 0.15, el === chrMe ? 1320 : 1568);
+    });
+  });
+
+  startMatch();
+})();
+</script>
+</body>
+</html>

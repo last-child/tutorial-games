@@ -1,0 +1,1785 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>달리는 유령</title>
+<meta name="theme-color" content="#120c24">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@500;700&display=swap">
+<style>
+  :root {
+    --night: #120c24;
+    --shadow: #0e0a16;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: #07040d;
+    color: #f2e6c4;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  ::selection { background: #ff8a1f; color: #120c24; }
+  /* 게임 틀은 세로 화면. 넓은 화면에서는 가운데에 세로 틀만 놓는다 */
+  #stage {
+    position: fixed; top: 0; left: 50%;
+    width: var(--frame-w, 100vw); height: var(--frame-h, 100vh);
+    transform: translateX(-50%);
+    overflow: hidden;
+    background: var(--night);
+    /* 화면을 톡 치면 뛰므로, 두 번 톡에 확대되거나 길게 눌러 메뉴가 뜨지 않게 한다 */
+    touch-action: none;
+    -webkit-touch-callout: none;
+  }
+  #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #hero {
+    position: absolute;
+    left: var(--hero-x, 40px);
+    top: var(--hero-y, 0px);
+    width: var(--hero-w, 100px);
+    height: var(--hero-h, 90px);
+    overflow: visible;
+  }
+  .lantern {
+    position: absolute; left: 0; top: 0;
+    overflow: visible;
+    filter: drop-shadow(0 0 6px rgba(255, 140, 40, .55));
+    will-change: transform;
+  }
+  /* 시작/일시정지 버튼: 동그란 호박색 버튼에 그림과 같은 짙은 테두리 */
+  #start {
+    position: absolute;
+    top: max(16px, calc(env(safe-area-inset-top) + 12px));
+    right: 16px;
+    width: 52px; height: 52px;
+    display: grid; place-items: center;
+    padding: 0;
+    background: radial-gradient(circle at 38% 32%, #ffbe6e, #e2701c 70%);
+    border: 3px solid #0e0a16;
+    border-radius: 50%;
+    box-shadow: 0 4px 0 #0e0a16, 0 0 18px rgba(255, 140, 40, .45);
+    cursor: pointer;
+    transition: transform .12s ease-out, box-shadow .12s ease-out;
+  }
+  #start svg { width: 26px; height: 26px; display: block; }
+  #start:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #0e0a16, 0 0 24px rgba(255, 140, 40, .6); }
+  #start:active { transform: translateY(3px); box-shadow: 0 1px 0 #0e0a16, 0 0 12px rgba(255, 140, 40, .4); }
+  #start:focus-visible { outline: 3px solid #f2e6c4; outline-offset: 3px; }
+  #start .icon-pause { display: none; }
+  #start.is-playing .icon-start { display: none; }
+  #start.is-playing .icon-pause { display: block; }
+  #start[hidden] { display: none; }
+  /* 소리 켜기/끄기: 시작 버튼 왼쪽의 작은 보라 버튼 */
+  #sound {
+    position: absolute;
+    top: calc(max(16px, calc(env(safe-area-inset-top) + 12px)) + 6px);
+    right: 80px;
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    padding: 0;
+    background: radial-gradient(circle at 38% 32%, #8a68b8, #3b2858 75%);
+    border: 3px solid #0e0a16;
+    border-radius: 50%;
+    box-shadow: 0 3px 0 #0e0a16, 0 0 14px rgba(190, 140, 255, .35);
+    cursor: pointer;
+    transition: transform .12s ease-out, box-shadow .12s ease-out;
+  }
+  #sound svg { width: 20px; height: 20px; display: block; }
+  #sound:hover { transform: translateY(-2px); box-shadow: 0 5px 0 #0e0a16, 0 0 18px rgba(190, 140, 255, .5); }
+  #sound:active { transform: translateY(2px); box-shadow: 0 1px 0 #0e0a16, 0 0 10px rgba(190, 140, 255, .3); }
+  #sound:focus-visible { outline: 3px solid #f2e6c4; outline-offset: 3px; }
+  #sound .icon-off { display: none; }
+  #sound.is-muted .icon-on { display: none; }
+  #sound.is-muted .icon-off { display: block; }
+
+  /* 점수: 왼쪽 위, 버튼과 같은 높이 */
+  #score {
+    position: absolute;
+    top: max(16px, calc(env(safe-area-inset-top) + 12px));
+    left: 18px;
+    height: 52px;
+    display: flex; align-items: center;
+    font: 34px/1 'Jua', sans-serif;
+    color: #f2e6c4;
+    text-shadow: 0 3px 0 #0e0a16, 2px 0 0 #0e0a16, -2px 0 0 #0e0a16, 0 -2px 0 #0e0a16, 2px 2px 0 #0e0a16, -2px 2px 0 #0e0a16;
+    pointer-events: none;
+  }
+
+  /* 흘러오는 사탕: 둥실둥실 떠 있다 */
+  .candy {
+    position: absolute; left: 0; top: 0;
+    overflow: visible;
+    filter: drop-shadow(0 0 6px rgba(255, 126, 182, .6));
+    will-change: transform;
+  }
+  .candy .bob { animation: bob .9s ease-in-out infinite alternate; }
+  /* 날아오는 박쥐: 어두운 하늘에서도 보이게 보랏빛을 두른다 */
+  .bat {
+    position: absolute; left: 0; top: 0;
+    overflow: visible;
+    filter: drop-shadow(0 0 6px rgba(190, 140, 255, .65));
+    will-change: transform;
+  }
+  .bat .bob { animation: bob .45s ease-in-out infinite alternate; }
+  @keyframes bob { from { transform: translateY(-6px); } to { transform: translateY(6px); } }
+  /* 먹으면 톡 터진다 */
+  #fx .candy-pop {
+    position: absolute; overflow: visible;
+    animation: candy-pop .32s ease-out forwards;
+  }
+  @keyframes candy-pop { to { transform: scale(1.8); opacity: 0; } }
+
+  /* 보호막: 사탕을 먹으면 유령이 사탕빛 막을 두른다 */
+  #hero .shield { display: none; transform-box: fill-box; transform-origin: center; }
+  #stage.has-shield #hero .shield {
+    display: inline;
+    animation: shield-on .3s ease-out, shield-pulse 1.2s .3s ease-in-out infinite alternate;
+  }
+  @keyframes shield-on { from { scale: .4; opacity: 0; } }
+  @keyframes shield-pulse { to { scale: 1.05; } }
+  /* 끝나기 2초 전부터 막이 깜빡인다 */
+  #stage.has-shield.shield-ending #hero .shield { animation: shield-end .3s steps(1) infinite; }
+  @keyframes shield-end { 50% { opacity: .25; } }
+  /* 보호막 위 타이머 */
+  #hero .shield-time {
+    display: none;
+    font: 26px 'Jua', sans-serif;
+    fill: #ffd6ea;
+    stroke: #0e0a16; stroke-width: 5px; stroke-linejoin: round;
+    paint-order: stroke;
+    text-anchor: middle;
+    transform-box: fill-box; transform-origin: center;
+  }
+  #stage.has-shield #hero .shield-time { display: inline; }
+  #stage.shield-ending #hero .shield-time { fill: #ff7eb6; }
+  /* 사탕을 또 먹어 시간이 늘면 숫자가 톡 커진다 */
+  #hero .shield-time.is-more { animation: time-more .35s ease-out; }
+  @keyframes time-more { 40% { scale: 1.5; } }
+  /* 막이 깨지면 잠깐 깜빡이는 동안은 부딪혀도 괜찮다 */
+  #stage.is-safe #hero { animation: blink .4s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: .35; } }
+  #stage.is-bump { animation: bump .3s cubic-bezier(.36, .07, .19, .97); }
+  @keyframes bump {
+    0%, 100% { translate: 0 0; }
+    20% { translate: -5px 2px; }
+    45% { translate: 4px -2px; }
+    70% { translate: -2px 1px; }
+  }
+  #fx .shield-burst {
+    position: absolute;
+    border: 4px solid #ffb3d6;
+    border-radius: 50%;
+    box-shadow: 0 0 14px rgba(255, 126, 182, .7), inset 0 0 10px rgba(127, 224, 196, .6);
+    animation: shield-burst .45s ease-out forwards;
+  }
+  @keyframes shield-burst { to { transform: scale(1.7); opacity: 0; } }
+  /* 막에 튕겨 나간 호박 */
+  #fx .knocked {
+    position: absolute; overflow: visible;
+    filter: drop-shadow(0 0 6px rgba(255, 140, 40, .55));
+    animation: knocked .8s cubic-bezier(.2, .6, .4, 1) forwards;
+  }
+  @keyframes knocked {
+    from { transform: rotate(var(--r0)); }
+    to { transform: translate(var(--kx), var(--ky)) rotate(calc(var(--r0) + 600deg)); opacity: 0; }
+  }
+
+  /* 부딪힘: 화면이 흔들리고, 닿은 자리가 번쩍이며 불똥이 튄다 */
+  #hero .face-hit { display: none; }
+  #stage.is-hit { animation: shake .42s cubic-bezier(.36, .07, .19, .97); }
+  #stage.is-hit #hero { animation: bonk .5s ease-out forwards; transform-origin: 50% 85%; }
+  #stage.is-hit #hero .face { display: none; }
+  #stage.is-hit #hero .face-hit { display: inline; }
+  @keyframes shake {
+    0%, 100% { translate: 0 0; }
+    12% { translate: -10px 5px; }
+    28% { translate: 9px -6px; }
+    44% { translate: -6px 3px; }
+    60% { translate: 5px -2px; }
+    78% { translate: -2px 1px; }
+  }
+  @keyframes bonk {
+    0% { scale: 1.22 .74; rotate: 0deg; filter: brightness(1.8); }
+    35% { scale: .92 1.08; rotate: -18deg; filter: brightness(1); }
+    100% { scale: 1 1; rotate: -14deg; }
+  }
+  #flash {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(circle at var(--fx, 50%) var(--fy, 50%), rgba(255, 244, 214, .95), rgba(255, 150, 50, .35) 16%, rgba(255, 150, 50, 0) 42%);
+  }
+  #stage.is-hit #flash { animation: flash .45s ease-out; }
+  @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+  #fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  #fx .pow {
+    position: absolute;
+    width: 70px; height: 70px; margin: -35px 0 0 -35px;
+    overflow: visible;
+    animation: pow .42s ease-out forwards;
+  }
+  @keyframes pow {
+    0% { transform: scale(.2) rotate(-20deg); opacity: 1; }
+    35% { transform: scale(1.1) rotate(0deg); opacity: 1; }
+    100% { transform: scale(1.3) rotate(8deg); opacity: 0; }
+  }
+  #fx .spark {
+    position: absolute;
+    width: var(--s); height: var(--s);
+    margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 8px var(--c);
+    animation: spark .65s cubic-bezier(.2, .7, .3, 1) forwards;
+  }
+  @keyframes spark {
+    from { transform: translate(0, 0) scale(1); opacity: 1; }
+    to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #stage.is-hit { animation: none; }
+    #fx .spark { display: none; }
+    #stage.is-bump, #stage.is-safe #hero { animation: none; }
+  }
+
+  /* 스피드 업: 상단 가운데에 오른쪽에서 휙 들어왔다가 왼쪽으로 빠진다 */
+  #speedup {
+    position: absolute; left: 0; right: 0; top: 26%;
+    text-align: center;
+    pointer-events: none;
+  }
+  #speedup[hidden] { display: none; }
+  #speedup.is-on { animation: speedup 1.6s ease-out forwards; }
+  #stage.is-paused #speedup { animation-play-state: paused; }
+  #speedup b {
+    display: block;
+    font: 44px/1 'Jua', sans-serif;
+    font-weight: normal;
+    color: #ff9a3c;
+    text-shadow: 0 4px 0 #0e0a16, 3px 0 0 #0e0a16, -3px 0 0 #0e0a16, 0 -3px 0 #0e0a16, 3px 3px 0 #0e0a16, -3px 3px 0 #0e0a16, 0 0 24px rgba(255, 140, 40, .5);
+    transform: skewX(-10deg);
+  }
+  #speedup span {
+    display: inline-block;
+    margin-top: 6px;
+    font: 26px/1 'Jua', sans-serif;
+    color: #f2e6c4;
+    text-shadow: 0 3px 0 #0e0a16, 2px 0 0 #0e0a16, -2px 0 0 #0e0a16, 0 -2px 0 #0e0a16;
+  }
+  @keyframes speedup {
+    0% { opacity: 0; transform: translateX(60px) scale(.85); }
+    12% { opacity: 1; transform: translateX(0) scale(1.08); }
+    22% { transform: scale(1); }
+    80% { opacity: 1; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(-60px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes speedup { 0%, 100% { opacity: 0; } 10%, 80% { opacity: 1; } }
+  }
+
+  /* 게임 오버 */
+  #over {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    padding: 16px;
+    background: rgba(7, 4, 13, .5);
+    animation: fade .3s ease-out;
+  }
+  #over[hidden] { display: none; }
+  @keyframes fade { from { opacity: 0; } }
+  .over-card {
+    width: min(100%, 300px);
+    padding: 26px 22px 24px;
+    text-align: center;
+    background: linear-gradient(#2b1a45, #1b1229);
+    border: 3px solid #0e0a16;
+    border-radius: 22px;
+    box-shadow: 0 6px 0 #0e0a16, 0 0 40px rgba(255, 140, 40, .22);
+    animation: pop .38s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  @keyframes pop { from { transform: scale(.7); } }
+  .over-card h2 {
+    margin: 0;
+    font: 42px/1.1 'Jua', sans-serif;
+    font-weight: normal;
+    color: #ff9a3c;
+    text-shadow: 0 3px 0 #0e0a16;
+  }
+  .over-score { margin: 18px 0 0; font: 500 15px/1 'Noto Sans KR', sans-serif; color: #b9acd6; }
+  .over-score b {
+    display: block;
+    margin-top: 8px;
+    font: 58px/1 'Jua', sans-serif;
+    font-weight: normal;
+    color: #f2e6c4;
+    text-shadow: 0 3px 0 #0e0a16;
+  }
+  .over-best { margin: 12px 0 24px; font: 500 15px/1.4 'Noto Sans KR', sans-serif; color: #b9acd6; }
+  .over-best .new {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 8px;
+    border-radius: 99px;
+    background: #ff9a3c;
+    color: #0e0a16;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .over-best .new[hidden] { display: none; }
+  #retry {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 26px 12px 20px;
+    font: 700 18px/1 'Noto Sans KR', sans-serif;
+    color: #0e0a16;
+    background: radial-gradient(circle at 38% 30%, #ffbe6e, #e2701c 80%);
+    border: 3px solid #0e0a16;
+    border-radius: 99px;
+    box-shadow: 0 4px 0 #0e0a16, 0 0 18px rgba(255, 140, 40, .45);
+    cursor: pointer;
+    transition: transform .12s ease-out, box-shadow .12s ease-out;
+  }
+  #retry svg { width: 20px; height: 20px; display: block; }
+  #retry:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #0e0a16, 0 0 24px rgba(255, 140, 40, .6); }
+  #retry:active { transform: translateY(3px); box-shadow: 0 1px 0 #0e0a16, 0 0 12px rgba(255, 140, 40, .4); }
+  #retry:focus-visible { outline: 3px solid #f2e6c4; outline-offset: 3px; }
+</style>
+</head>
+<body>
+<main id="stage" aria-label="달리는 유령">
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <!-- 잭오랜턴. 가운데(0, 0)를 축으로 굴러간다 -->
+    <symbol id="pumpkin" viewBox="-50 -50 100 100">
+      <defs>
+        <radialGradient id="pumpkin-skin" cx=".38" cy=".35" r=".75">
+          <stop offset="0" stop-color="#ffab52"/>
+          <stop offset="1" stop-color="#c9561a"/>
+        </radialGradient>
+      </defs>
+      <path d="M -3 -36 Q -3 -47, 7 -48 L 9 -43 Q 3 -42, 3 -36 Z" fill="#4a5a22" stroke="#0e0a16" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M 0 -36 C 26 -42, 44 -26, 44 2 C 44 28, 26 40, 0 38 C -26 40, -44 28, -44 2 C -44 -26, -26 -42, 0 -36 Z"
+        fill="url(#pumpkin-skin)" stroke="#0e0a16" stroke-width="3"/>
+      <!-- 골 -->
+      <g fill="none" stroke="#8e3a0c" stroke-width="2.5" stroke-linecap="round" opacity=".7">
+        <path d="M -12 -35 Q -30 2, -12 37"/>
+        <path d="M 12 -35 Q 30 2, 12 37"/>
+      </g>
+      <!-- 속에서 새어 나오는 촛불빛 -->
+      <g fill="#ffe08a" stroke="#7a2e08" stroke-width="1.5" stroke-linejoin="round">
+        <path d="M -27 -2 L -15 -22 L -4 -2 Z"/>
+        <path d="M 4 -2 L 15 -22 L 27 -2 Z"/>
+        <path d="M -29 9 Q 0 38, 29 9 L 19 15 L 12 8 L 4 17 L -4 17 L -12 8 L -19 15 Z"/>
+      </g>
+    </symbol>
+    <!-- 박쥐. 보랏빛 날개를 퍼덕이고 노란 눈이 빛난다 -->
+    <symbol id="bat" viewBox="-50 -50 100 100" overflow="visible">
+      <g stroke="#0e0a16" stroke-width="3" stroke-linejoin="round">
+        <g>
+          <path d="M -9 -4 Q -22 -22, -46 -18 Q -40 -10, -42 -2 Q -34 -4, -30 4 Q -24 0, -18 8 Q -14 4, -8 8 Z" fill="#6a4a94"/>
+          <animateTransform attributeName="transform" type="rotate" values="-22 -9 0; 24 -9 0; -22 -9 0" dur=".32s" repeatCount="indefinite"/>
+        </g>
+        <g>
+          <path d="M 9 -4 Q 22 -22, 46 -18 Q 40 -10, 42 -2 Q 34 -4, 30 4 Q 24 0, 18 8 Q 14 4, 8 8 Z" fill="#6a4a94"/>
+          <animateTransform attributeName="transform" type="rotate" values="22 9 0; -24 9 0; 22 9 0" dur=".32s" repeatCount="indefinite"/>
+        </g>
+        <path d="M -11 -10 L -13 -24 L -4 -15 Q 0 -16, 4 -15 L 13 -24 L 11 -10 Q 15 0, 12 10 Q 6 18, 0 18 Q -6 18, -12 10 Q -15 0, -11 -10 Z" fill="#4b3570"/>
+      </g>
+      <ellipse cx="0" cy="8" rx="6" ry="6.5" fill="#7a5aa6"/>
+      <ellipse cx="-5" cy="-6" rx="3.6" ry="4" fill="#ffd34d"/>
+      <ellipse cx="5" cy="-6" rx="3.6" ry="4" fill="#ffd34d"/>
+      <ellipse cx="-4.4" cy="-5.4" rx="1.4" ry="2.2" fill="#0e0a16"/>
+      <ellipse cx="5.6" cy="-5.4" rx="1.4" ry="2.2" fill="#0e0a16"/>
+      <path d="M -3.5 2 L -2.2 5.5 L -1 2 M 1 2 L 2.2 5.5 L 3.5 2" fill="#fff" stroke="#0e0a16" stroke-width="1" stroke-linejoin="round"/>
+    </symbol>
+    <!-- 사탕. 분홍 알사탕을 민트색 포장지로 양쪽을 비틀어 쌌다 -->
+    <symbol id="candy" viewBox="-50 -50 100 100">
+      <defs>
+        <radialGradient id="candy-skin" cx=".38" cy=".32" r=".8">
+          <stop offset="0" stop-color="#ffb3d6"/>
+          <stop offset="1" stop-color="#e8559a"/>
+        </radialGradient>
+        <clipPath id="candy-clip"><circle r="20"/></clipPath>
+      </defs>
+      <g fill="#7fe0c4" stroke="#0e0a16" stroke-width="3" stroke-linejoin="round">
+        <path d="M -17 -4 L -43 -18 Q -36 0, -43 18 L -17 4 Z"/>
+        <path d="M 17 -4 L 43 -18 Q 36 0, 43 18 L 17 4 Z"/>
+      </g>
+      <g fill="none" stroke="#3f9e86" stroke-width="2" stroke-linecap="round">
+        <path d="M -24 -5 L -36 -11 M -24 5 L -36 11"/>
+        <path d="M 24 -5 L 36 -11 M 24 5 L 36 11"/>
+      </g>
+      <circle r="20" fill="url(#candy-skin)"/>
+      <g clip-path="url(#candy-clip)" fill="#fff" opacity=".85">
+        <path d="M -30 -6 L -6 -30 L 0 -24 L -24 0 Z"/>
+        <path d="M -18 18 L 18 -18 L 24 -12 L -12 24 Z"/>
+        <path d="M 6 30 L 30 6 L 36 12 L 12 36 Z"/>
+      </g>
+      <circle r="20" fill="none" stroke="#0e0a16" stroke-width="3"/>
+      <ellipse cx="-8" cy="-9" rx="4" ry="2.6" fill="#fff" opacity=".9" transform="rotate(-35 -8 -9)"/>
+    </symbol>
+  </svg>
+  <svg id="hero" viewBox="0 0 100 84" role="img" aria-label="보자기 유령">
+    <defs>
+      <!-- 뒤쪽(왼쪽)으로 갈수록 천에 그늘이 진다 -->
+      <linearGradient id="sheet" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#c9c3e6"/>
+        <stop offset=".38" stop-color="#f4f1ff"/>
+      </linearGradient>
+      <radialGradient id="shield-fill" cx=".5" cy=".5" r=".5">
+        <stop offset=".6" stop-color="#ffb3d6" stop-opacity="0"/>
+        <stop offset="1" stop-color="#ffb3d6" stop-opacity=".38"/>
+      </radialGradient>
+    </defs>
+    <g stroke="#0e0a16" stroke-width="3" stroke-linejoin="round">
+      <!-- 보자기: 앞으로 기울고, 아랫단은 물결지며 뒤로 날린다 -->
+      <path fill="url(#sheet)" d="M 22 72 C 20 40, 28 8, 56 6 C 82 5, 90 28, 89 50 C 89 60, 90 68, 88 74
+        Q 85 80, 79 75 Q 73 70, 67 77 Q 61 84, 55 76 Q 49 69, 43 77 Q 36 85, 30 77 Q 22 80, 10 82 Q 18 78, 22 72 Z"/>
+    </g>
+    <!-- 얼굴 -->
+    <g class="face">
+      <ellipse cx="62" cy="33" rx="3.6" ry="5.2" fill="#1a1326"/>
+      <ellipse cx="78" cy="32" rx="3.6" ry="5.2" fill="#1a1326"/>
+      <circle cx="63.2" cy="31" r="1.3" fill="#fff"/>
+      <circle cx="79.2" cy="30" r="1.3" fill="#fff"/>
+      <path d="M 66 43 Q 70 47, 74 43" fill="none" stroke="#1a1326" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <!-- 부딪혔을 때: 눈이 ×가 되고 입이 벌어진다 -->
+    <g class="face-hit" fill="none" stroke="#1a1326" stroke-width="2.6" stroke-linecap="round">
+      <path d="M 58.5 29 L 65.5 37 M 65.5 29 L 58.5 37"/>
+      <path d="M 74.5 28 L 81.5 36 M 81.5 28 L 74.5 36"/>
+      <ellipse cx="70" cy="45" rx="2.8" ry="3.4" fill="#1a1326" stroke="none"/>
+    </g>
+    <ellipse cx="56" cy="42" rx="4.2" ry="2.4" fill="#f2a3b5" opacity=".75"/>
+    <ellipse cx="84" cy="41" rx="3.4" ry="2.4" fill="#f2a3b5" opacity=".75"/>
+    <!-- 사탕 보호막 -->
+    <g class="shield">
+      <ellipse cx="55" cy="42" rx="52" ry="47" fill="url(#shield-fill)" stroke="#ffb3d6" stroke-width="3"/>
+      <ellipse cx="55" cy="42" rx="47" ry="42" fill="none" stroke="#7fe0c4" stroke-width="1.5" stroke-dasharray="6 9" opacity=".8"/>
+      <path d="M 18 24 Q 28 4, 52 0" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".75"/>
+    </g>
+    <!-- 보호막 남은 초 -->
+    <text class="shield-time" x="55" y="-12">6</text>
+  </svg>
+  <div id="flash" aria-hidden="true"></div>
+  <div id="fx" aria-hidden="true"></div>
+  <div id="score" aria-hidden="true">0</div>
+  <div id="speedup" aria-hidden="true" hidden><b>스피드 업!</b><span id="speedup-x">×1.25</span></div>
+  <section id="over" aria-labelledby="over-title" hidden>
+    <div class="over-card">
+      <h2 id="over-title">게임 오버</h2>
+      <p class="over-score">점수<b id="over-score">0</b></p>
+      <p class="over-best">최고 <span id="over-best">0</span><span class="new" id="over-new" hidden>새 기록</span></p>
+      <button id="retry" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95" fill="none" stroke="#0e0a16" stroke-width="2.8" stroke-linecap="round"/><path d="M19.5 3.5v5h-5" fill="none" stroke="#0e0a16" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        다시하기
+      </button>
+    </div>
+  </section>
+  <button id="sound" type="button" aria-label="소리 끄기">
+    <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5h3.5l4.5-4v13l-4.5-4H3.5z" fill="#f2e6c4" stroke="#f2e6c4" stroke-width="1.2" stroke-linejoin="round"/><path d="M15 9a4 4 0 0 1 0 6M17.6 6.4a7.6 7.6 0 0 1 0 11.2" fill="none" stroke="#f2e6c4" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5h3.5l4.5-4v13l-4.5-4H3.5z" fill="#f2e6c4" stroke="#f2e6c4" stroke-width="1.2" stroke-linejoin="round"/><path d="M15 9.5l5 5M20 9.5l-5 5" fill="none" stroke="#f2e6c4" stroke-width="2.2" stroke-linecap="round"/></svg>
+  </button>
+  <button id="start" type="button" aria-label="시작">
+    <svg class="icon-start" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5 Q8 4 9.3 4.8 L19 11 Q20.2 12 19 13 L9.3 19.2 Q8 20 8 18.5 Z" fill="#0e0a16"/></svg>
+    <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.4" fill="#0e0a16"/><rect x="13.5" y="5" width="4" height="14" rx="1.4" fill="#0e0a16"/></svg>
+  </button>
+</main>
+
+<script id="logic">
+// 규칙과 계산. DOM 없이 Node에서 시험할 수 있다.
+var Runner = (function () {
+  // 같은 씨앗이면 같은 장면이 나오게 하는 난수
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  // 게임 틀은 세로다. 창이 9:16보다 넓으면 높이에 맞춘 9:16 틀로 줄이고, 세로 폰처럼 더 길쭉하면 창을 그대로 쓴다.
+  var ASPECT = 9 / 16;
+  function frame(winW, winH) {
+    return { w: Math.min(winW, Math.round(winH * ASPECT)), h: winH };
+  }
+
+  // 틀 크기에서 땅 높이와 유령 자리를 정한다
+  function layout(w, h) {
+    var heroH = Math.round(clamp(h * 0.13, 56, 120));
+    var groundY = Math.round(h * 0.74);
+    return {
+      w: w, h: h, groundY: groundY,
+      heroH: heroH, heroW: Math.round(heroH * 100 / 84),
+      heroX: Math.round(Math.max(20, w * 0.1)),
+      // 유령 그림(viewBox 100×84)의 아랫단 끝이 맨 아래라 그대로 땅에 닿는다
+      heroY: groundY - heroH
+    };
+  }
+
+  // 언덕 윤곽. 봉우리 여러 개를 겹쳐 가장 높은 쪽을 따른다. 돌려주는 값은 [x, y] 점들.
+  // opts.wrap이면 오른쪽 끝이 왼쪽 끝과 똑같이 이어져서, 옆으로 계속 붙여 흘려도 이음매가 없다.
+  function ridge(w, baseY, height, seed, opts) {
+    var r = rng(seed);
+    var o = opts || {};
+    var spacing = o.spacing || 160;
+    var sharp = o.sharp || 1.6;
+    var wrap = !!o.wrap;
+    var peaks = [];
+    for (var x = wrap ? 0 : -spacing; x < (wrap ? w - spacing * 0.3 : w + spacing * 2); x += spacing * (0.55 + r() * 0.7)) {
+      peaks.push({
+        c: x,
+        s: spacing * (0.35 + r() * 0.45),
+        hgt: height * (0.35 + Math.pow(r(), 0.7) * 0.65)
+      });
+    }
+    var pts = [];
+    var step = o.step || 4;
+    for (var px = 0; px <= w + step; px += step) {
+      var top = 0;
+      for (var i = 0; i < peaks.length; i++) {
+        var p = peaks[i];
+        var dx = Math.abs(px - p.c);
+        if (wrap) dx = Math.min(dx % w, w - dx % w);
+        var d = dx / p.s;
+        var v = p.hgt * Math.exp(-Math.pow(d, sharp));
+        if (v > top) top = v;
+      }
+      // 잔 굴곡. wrap이면 너비에 딱 맞는 주기로 바꿔 끝이 이어지게 한다.
+      var k = wrap ? Math.max(1, Math.round(w * 0.031 / (2 * Math.PI))) * 2 * Math.PI / w : 0.031;
+      top += Math.sin(px * k + seed * 2) * height * 0.02;
+      pts.push([px, baseY - Math.max(0, top)]);
+    }
+    return pts;
+  }
+
+  // 앙상하게 꼬인 나무. 가지마다 두 갈래로 나뉘며 조금씩 비틀린다.
+  // 돌려주는 값은 선분 [x1, y1, x2, y2, 굵기] 목록.
+  function tree(seed, x, y, size) {
+    var r = rng(seed);
+    var segs = [];
+    function branch(bx, by, angle, len, width, depth) {
+      // 한 가지를 두 마디로 꺾어 그려 구불구불하게 한다
+      var bend = (r() - 0.5) * 0.6;
+      var mx = bx + Math.cos(angle) * len * 0.5;
+      var my = by + Math.sin(angle) * len * 0.5;
+      var ex = mx + Math.cos(angle + bend) * len * 0.5;
+      var ey = my + Math.sin(angle + bend) * len * 0.5;
+      segs.push([bx, by, mx, my, width]);
+      segs.push([mx, my, ex, ey, width * 0.85]);
+      if (depth <= 0) return;
+      var n = r() < 0.25 ? 3 : 2;
+      for (var i = 0; i < n; i++) {
+        var spread = (i - (n - 1) / 2) * (0.55 + r() * 0.35);
+        branch(ex, ey, angle + bend + spread + (r() - 0.5) * 0.25,
+          len * (0.62 + r() * 0.16), width * 0.62, depth - 1);
+      }
+    }
+    branch(x, y, -Math.PI / 2 + (r() - 0.5) * 0.2, size * 0.36, Math.max(2, size * 0.055), 5);
+    return segs;
+  }
+
+  // 소품 자리를 흩뿌린다. 비워 둘 구간([시작, 끝])과 서로 최소 간격을 지킨다.
+  function scatter(seed, w, n, avoid, gap) {
+    var r = rng(seed);
+    var xs = [];
+    for (var tries = 0; xs.length < n && tries < n * 40; tries++) {
+      var x = r() * w;
+      var ok = true;
+      for (var i = 0; i < avoid.length; i++) {
+        if (x >= avoid[i][0] && x <= avoid[i][1]) ok = false;
+      }
+      for (var j = 0; j < xs.length; j++) {
+        if (Math.abs(xs[j] - x) < gap) ok = false;
+      }
+      if (ok) xs.push(x);
+    }
+    return xs.sort(function (a, b) { return a - b; });
+  }
+
+  // 점프. 높이는 유령 키를 1로 잰다(화면 크기가 바뀌어도 같은 모양으로 뛴다).
+  // 솟구친 뒤 중력에 점점 느려지며 꼭대기에 닿고, 다시 점점 빨라지며 내려온다.
+  var JUMP = { peak: 1.7, rise: 0.38 }; // 꼭대기 높이(유령 키의 배수), 꼭대기까지 걸리는 초
+  var GRAVITY = 2 * JUMP.peak / (JUMP.rise * JUMP.rise);
+  var JUMP_SPEED = 2 * JUMP.peak / JUMP.rise;
+
+  function hero() { return { y: 0, vy: 0, grounded: true }; }
+
+  // 땅에 있을 때만 뛴다. 공중에서는 무시한다.
+  function jump(s) {
+    if (!s.grounded) return false;
+    s.vy = JUMP_SPEED;
+    s.grounded = false;
+    return true;
+  }
+
+  // 프레임 간격이 들쭉날쭉해도 같은 궤적이 되도록 잘게 나눠 계산한다
+  function step(s, dt) {
+    var left = Math.min(dt, 0.1);
+    while (left > 0 && !s.grounded) {
+      var h = Math.min(left, 1 / 240);
+      s.vy -= GRAVITY * h;
+      s.y += s.vy * h;
+      if (s.y <= 0) { s.y = 0; s.vy = 0; s.grounded = true; }
+      left -= h;
+    }
+    return s;
+  }
+
+  // 굴러오는 잭오랜턴. 길이 단위는 모두 유령 키다.
+  // 넘을 수 있으려면 충분히 빨라야 한다: 유령과 겹치는 시간(약 0.45초)이 호박 높이보다 높이 떠 있는 시간(약 0.64초)보다 짧다.
+  var LANTERN = { size: 0.55, speed: 3.2, first: 1.6 }; // 지름, 초당 거리, 첫 호박이 나오기까지 초
+  var AIRTIME = 2 * JUMP.rise;
+  // 다음 호박까지 간격(초). 가장 짧아도 한 번 뛰어 착지하고 숨 돌릴 틈은 둔다. 그래서 앞 호박을 넘다가 다음 호박에 걸리는 일은 없다.
+  var GAP = { min: AIRTIME + 0.55, max: AIRTIME + 2.2 };
+
+  // 배경 흐름. 유령은 제자리에 있고 배경이 왼쪽으로 흘러서 유령이 오른쪽으로 달리는 것처럼 보인다.
+  // run은 땅이 흐르는 빠르기(초당 유령 키), 나머지는 땅 대비 몇 배로 흐르는지. 멀수록 느리다.
+  // 별이 박힌 하늘은 멈춰 있다.
+  var SCROLL = { run: 1.6, far: 0.08, near: 0.2, mid: 0.5, ground: 1 };
+
+  // 흐른 거리에서 한 겹을 왼쪽으로 몇 px 밀지. 겹 그림 너비(tile) 안에서 되돌아 반복한다.
+  function scrollOffset(dist, factor, unit, tile) {
+    var o = (dist * factor * unit) % tile;
+    return o < 0 ? o + tile : o;
+  }
+
+  function nextGap(r) { return GAP.min + r() * (GAP.max - GAP.min); }
+
+  // 갈수록 빨라진다. 달린 시간에 따라 호박과 배경이 흐르는 빠르기가 30초에 1.5배, 1분에 2배가 되고, 그 뒤로는 2배 그대로다.
+  // every초마다(가장 빨라질 때까지) "스피드 업!"을 알린다.
+  var RAMP = { per: 60, max: 2, every: 15 };
+  function pace(wd) { return Math.min(RAMP.max, 1 + wd.time / RAMP.per); }
+
+  // 점수는 처음 빠르기로 1초에 10점. 빨라지면 그만큼 더 빨리 오른다(2배일 때 1초에 20점).
+  var SCORE_RATE = 10;
+
+  // dist는 배경이 흐른 거리라 다시 해도 이어지고, time은 이번 판에 달린 시간, points는 이번 판 점수다.
+  function world(seed) {
+    return { started: false, paused: false, over: false, dist: 0, time: 0, points: 0, hero: hero(), lanterns: [], spawnIn: LANTERN.first, hit: null,
+      candies: [], candyIn: -1, picked: [], shield: 0, safe: 0, knocked: [], speedUps: [], bats: [], nextBat: false, r: rng(seed) };
+  }
+
+  function score(wd) { return Math.floor(wd.points); }
+
+  // 다시하기. 버튼을 다시 누르지 않아도 곧바로 달린다.
+  function restart(wd) {
+    wd.started = true;
+    wd.paused = false;
+    wd.over = false;
+    wd.time = 0;
+    wd.points = 0;
+    wd.hero = hero();
+    wd.lanterns = [];
+    wd.spawnIn = LANTERN.first;
+    wd.hit = null;
+    wd.candies = [];
+    wd.candyIn = -1;
+    wd.picked = [];
+    wd.shield = 0;
+    wd.safe = 0;
+    wd.knocked = [];
+    wd.speedUps = [];
+    wd.bats = [];
+    wd.nextBat = false;
+    return wd;
+  }
+
+  // 시작 버튼 한 개로 시작 → 일시정지 → 다시 시작을 오간다.
+  // 처음 시작하면 첫 호박까지 잠깐 기다린다. 일시정지했다 다시 시작하면 멈춘 자리에서 이어진다.
+  // 게임 오버 뒤에는 다시하기로만 시작한다.
+  function toggle(wd) {
+    if (wd.over) return wd;
+    if (!wd.started) {
+      wd.started = true;
+      wd.spawnIn = LANTERN.first;
+    } else {
+      wd.paused = !wd.paused;
+    }
+    return wd;
+  }
+
+  function playing(wd) { return wd.started && !wd.paused && !wd.over; }
+
+  // 시작 버튼을 누르기 전, 일시정지 중, 게임 오버 뒤에는 뛰지 못한다.
+  function tryJump(wd) { return playing(wd) ? jump(wd.hero) : false; }
+
+  // 한 프레임 진행. viewW는 틀 너비, heroX는 유령 왼쪽 끝(모두 유령 키 단위).
+  // 호박은 오른쪽 끝 밖에서 나와 왼쪽 끝 밖으로 사라진다. 호박에 닿으면 그 자리에서 바로 게임 오버다.
+  function update(wd, dt, viewW, heroX) {
+    if (wd.paused || wd.over) return wd;
+    dt = Math.min(dt, 0.1);
+    step(wd.hero, dt);
+    var rad = LANTERN.size / 2;
+    var m = pace(wd);
+    var kept = [];
+    for (var i = 0; i < wd.lanterns.length; i++) {
+      var ln = wd.lanterns[i];
+      ln.x -= LANTERN.speed * m * dt;
+      ln.turn -= LANTERN.speed * m * dt / rad; // 미끄러지지 않고 구르는 만큼 돈다(라디안)
+      if (ln.x > -rad) kept.push(ln);
+    }
+    wd.lanterns = kept;
+    var keptB = [];
+    for (var b = 0; b < wd.bats.length; b++) {
+      wd.bats[b].x -= LANTERN.speed * m * dt;
+      if (wd.bats[b].x > -BAT.size / 2) keptB.push(wd.bats[b]);
+    }
+    wd.bats = keptB;
+    if (!wd.started) return wd;
+    wd.dist += SCROLL.run * m * dt;
+    var was = wd.time;
+    wd.time += dt;
+    var mark = Math.floor(wd.time / RAMP.every) * RAMP.every;
+    if (mark > was && mark <= RAMP.per * (RAMP.max - 1)) wd.speedUps.push(1 + mark / RAMP.per);
+    wd.points += SCORE_RATE * m * dt;
+    // 보호막은 시간이 지나면 사라진다
+    if (wd.shield > 0) wd.shield = Math.max(0, wd.shield - dt);
+    // 호박이나 박쥐에 닿으면: 보호막이 있으면 막이 깨지며 튕겨 내고, 없으면 게임 오버
+    if (wd.safe > 0) wd.safe = Math.max(0, wd.safe - dt);
+    var foes = [[wd.lanterns, touching], [wd.bats, batTouching]];
+    for (var f = 0; f < foes.length; f++) {
+      var list = foes[f][0], hits = foes[f][1];
+      for (var j = 0; j < list.length; j++) {
+        if (wd.safe > 0 || !hits(heroX, wd.hero, list[j])) continue;
+        if (wd.shield > 0) {
+          wd.shield = 0;
+          wd.safe = CANDY.safe;
+          wd.knocked.push(list.splice(j, 1)[0]);
+          j--;
+          continue;
+        }
+        wd.over = true;
+        wd.hit = list[j];
+        return wd;
+      }
+    }
+    // 사탕: 호박과 같은 빠르기로 흘러가고, 유령 몸이 닿으면 먹는다
+    var cr = CANDY.size / 2, keptC = [];
+    for (var c = 0; c < wd.candies.length; c++) {
+      var cd = wd.candies[c];
+      cd.x -= LANTERN.speed * m * dt;
+      if (grabbing(heroX, wd.hero, cd)) {
+        wd.shield += CANDY.time; // 막이 있을 때 또 먹으면 시간만 늘어난다(막는 건 그대로 한 번)
+        wd.picked.push(cd);
+        continue;
+      }
+      if (cd.x > -cr) keptC.push(cd);
+    }
+    wd.candies = keptC;
+    wd.spawnIn -= dt;
+    if (wd.spawnIn <= 0) {
+      if (wd.nextBat) wd.bats.push({ x: viewW + BAT.size / 2, kind: 'bat' });
+      else wd.lanterns.push({ x: viewW + rad, turn: 0 });
+      var g = nextGap(wd.r);
+      wd.spawnIn += g;
+      // 간격이 넉넉할 때만 두 적 사이 한가운데에 사탕을 띄운다
+      if (g >= CANDY.minGap && wd.r() < CANDY.chance) wd.candyIn = g / 2;
+      // 다음 적이 박쥐인지는 미리 정해 둔다
+      wd.nextBat = wd.time >= BAT.after && wd.r() < BAT.chance;
+    }
+    if (wd.candyIn >= 0) {
+      wd.candyIn -= dt;
+      // 보호막이 full초 이상 남았으면 사탕을 띄우지 않는다
+      if (wd.candyIn < 0 && wd.shield < CANDY.full) wd.candies.push({ x: viewW + cr });
+    }
+    return wd;
+  }
+
+  // 사탕은 보호막 아이템이다. 먹으면 time초 동안 보호막을 두르고, 그동안 호박에 한 번 부딪혀도 죽지 않는다. 길이 단위는 유령 키.
+  // 가만히 달리면 머리 위로 지나가서 뛰어야 먹는다.
+  // 사탕을 먹으려고 뛰어도 다음 호박을 넘을 수 있도록 호박 사이 간격이 minGap초 이상일 때만 그 한가운데에 나온다.
+  // 보호막이 full초 이상 남아 있으면 사탕이 나오지 않는다.
+  // 막이 깨진 뒤 safe초 동안은 깜빡이며 부딪혀도 괜찮다(호박 하나에 두 번 걸리지 않게).
+  var CANDY = { size: 0.42, height: 1.55, reach: 0.24, chance: 0.6, minGap: 2.2, safe: 1, time: 6, full: 20 };
+
+  // 박쥐. 유령이 뛰면 머리가 닿는 높이(가운데가 땅에서 유령 키 1.6배)로 날아와서, 뛰지 않고 기다려야 지나간다.
+  // 판정은 높이 1.3~1.9. 가만히 있으면 유령 머리(1)와 0.3 떠 있고, 뛰어서 가장 높이 올라가도 유령 아랫단(1.81)이 판정 위끝(1.9)을 못 넘는다. 그래서 뛰어 넘을 수는 없다.
+  // 호박과 같은 빠르기로 오고, 첫 after초 동안은 나오지 않는다. 그 뒤로는 적이 나올 차례마다 chance 확률로 박쥐다.
+  var BAT = { size: 0.95, height: 1.6, reach: 0.3, chance: 0.3, after: 10 };
+
+  // 유령 몸통 네모와 박쥐 둘레(reach 반지름 원)가 겹치면 닿은 것
+  function batTouching(heroX, h, bt) {
+    var nx = clamp(bt.x, heroX + HITBOX.left, heroX + HITBOX.right);
+    var ny = clamp(BAT.height, h.y + HITBOX.bottom, h.y + HITBOX.top);
+    var dx = bt.x - nx, dy = BAT.height - ny;
+    return dx * dx + dy * dy < BAT.reach * BAT.reach;
+  }
+
+  // 유령 몸통(호박과 같은 네모)과 사탕 둘레(reach 반지름 원)가 겹치면 먹는다
+  function grabbing(heroX, h, cd) {
+    var nx = clamp(cd.x, heroX + HITBOX.left, heroX + HITBOX.right);
+    var ny = clamp(CANDY.height, h.y + HITBOX.bottom, h.y + HITBOX.top);
+    var dx = cd.x - nx, dy = CANDY.height - ny;
+    return dx * dx + dy * dy < CANDY.reach * CANDY.reach;
+  }
+
+  // 유령과 호박이 닿았는지. 보기보다 조금 작게 재서 아슬아슬하게 넘으면 넘은 것으로 친다.
+  // heroX: 유령 왼쪽 끝(유령 키 단위). 유령 그림 너비는 키의 100/84배다.
+  // 유령은 몸통만 네모로 본다(뒤로 날린 꼬리와 아랫단 물결 끝은 뺀다). 호박은 그림보다 작은 원으로 본다.
+  // 네모와 원이 실제로 겹칠 때만 닿은 것이라, 호박 둥근 가장자리 바깥 빈 모서리는 닿지 않는다.
+  // 값은 유령 그림(viewBox 100×84) 좌표를 키(84)로 나눈 것이다.
+  var HITBOX = { left: 30 / 84, right: 83 / 84, bottom: 9 / 84, top: 1, lantern: 0.78 };
+  function touching(heroX, h, ln) {
+    var r = LANTERN.size / 2;
+    var rc = r * HITBOX.lantern;
+    var nx = clamp(ln.x, heroX + HITBOX.left, heroX + HITBOX.right);
+    var ny = clamp(r, h.y + HITBOX.bottom, h.y + HITBOX.top);
+    var dx = ln.x - nx, dy = r - ny;
+    return dx * dx + dy * dy < rc * rc;
+  }
+
+  return { SCROLL: SCROLL, scrollOffset: scrollOffset, LANTERN: LANTERN, GAP: GAP, AIRTIME: AIRTIME, nextGap: nextGap, world: world, RAMP: RAMP, pace: pace, score: score, restart: restart, toggle: toggle, playing: playing, tryJump: tryJump, update: update, BAT: BAT, batTouching: batTouching, CANDY: CANDY, grabbing: grabbing, HITBOX: HITBOX, touching: touching,
+    ASPECT: ASPECT, frame: frame, JUMP: JUMP, hero: hero, jump: jump, step: step, rng: rng, clamp: clamp, layout: layout, ridge: ridge, tree: tree, scatter: scatter };
+})();
+if (typeof module !== 'undefined') module.exports = Runner;
+</script>
+
+<script>
+(function () {
+  var SEED = 1031; // 할로윈
+  var SHADOW = '#0e0a16';
+
+  var canvas = document.getElementById('scene');
+  var ctx = canvas.getContext('2d');
+  var stage = document.getElementById('stage');
+  var hero = document.getElementById('hero');
+
+  function tracePath(pts, baseY) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], baseY);
+    for (var i = 0; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.lineTo(pts[pts.length - 1][0], baseY);
+    ctx.closePath();
+  }
+
+  // 밤하늘: 위는 짙은 보라, 지평선 쪽은 탁한 주황으로 물든다
+  function drawSky(L) {
+    var g = ctx.createLinearGradient(0, 0, 0, L.groundY);
+    g.addColorStop(0, '#120c24');
+    g.addColorStop(0.55, '#2b1a45');
+    g.addColorStop(0.82, '#4a2a50');
+    g.addColorStop(1, '#6b3a3a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, L.w, L.h);
+    var r = Runner.rng(SEED + 1);
+    var n = Math.round(L.w * L.h / 9000);
+    for (var i = 0; i < n; i++) {
+      var x = r() * L.w, y = r() * L.groundY * 0.6, s = r();
+      ctx.fillStyle = 'rgba(242, 230, 196,' + (0.25 + s * 0.5).toFixed(2) + ')';
+      ctx.fillRect(x, y, s > 0.85 ? 2 : 1, s > 0.85 ? 2 : 1);
+    }
+  }
+
+  // 먼 언덕 두 겹: 뒤는 보랏빛, 앞은 더 짙다. 겹마다 따로 흐른다.
+  function drawFarHills(L, T) {
+    var pts = Runner.ridge(T, L.groundY, L.h * 0.2, SEED + 2, { spacing: Math.max(140, L.w * 0.2), sharp: 1.6, wrap: true });
+    tracePath(pts, L.groundY + 4);
+    ctx.fillStyle = '#2a1d3d';
+    ctx.fill();
+  }
+
+  function drawNearHills(L, T) {
+    var pts = Runner.ridge(T, L.groundY, L.h * 0.11, SEED + 3, { spacing: Math.max(100, L.w * 0.13), sharp: 1.8, wrap: true });
+    tracePath(pts, L.groundY + 4);
+    ctx.fillStyle = '#1b1229';
+    ctx.fill();
+  }
+
+  // 나선 언덕: 솟아오른 언덕 끝이 혀처럼 길게 나와 둥글게 말린다
+  function spiralSize(L) { return Math.min(L.h * 0.22, L.w * 0.3); }
+  function treeSize(L) { return Runner.clamp(Math.min(L.h * 0.3, L.w * 0.4), 110, 240); }
+
+  function drawSpiralHill(L, cx) {
+    var gy = L.groundY;
+    var H = spiralSize(L);
+    var R = H * 0.32;
+    var topY = gy - H;
+    ctx.fillStyle = SHADOW;
+    ctx.beginPath();
+    ctx.moveTo(cx - H * 1.6, gy);
+    ctx.bezierCurveTo(cx - H * 0.8, gy, cx - H * 0.25, topY + H * 0.3, cx, topY);
+    ctx.bezierCurveTo(cx + H * 0.2, topY + H * 0.35, cx + H * 0.8, gy, cx + H * 1.4, gy);
+    ctx.closePath();
+    ctx.fill();
+    // 말린 끝: 나선을 따라 점점 가늘어지는 원을 촘촘히 찍는다
+    var C = [cx + R, topY];
+    var w0 = R * 0.42;
+    for (var t = 0; t <= 1; t += 0.004) {
+      var a = Math.PI + t * Math.PI * 2.15;
+      var rr = R * (1 - 0.72 * t);
+      ctx.beginPath();
+      ctx.arc(C[0] + Math.cos(a) * rr, C[1] + Math.sin(a) * rr, Math.max(1, w0 * (1 - 0.8 * t)), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 앙상한 나무 한 그루
+  function drawTree(L, x, seed, size) {
+    var segs = Runner.tree(seed, x, L.groundY + 4, size);
+    ctx.strokeStyle = SHADOW;
+    ctx.lineCap = 'round';
+    for (var i = 0; i < segs.length; i++) {
+      var s = segs[i];
+      ctx.lineWidth = s[4];
+      ctx.beginPath();
+      ctx.moveTo(s[0], s[1]);
+      ctx.lineTo(s[2], s[3]);
+      ctx.stroke();
+    }
+  }
+
+  // 땅에 박힌 묘비들
+  function drawGraves(L, T) {
+    var gh = Runner.clamp(L.h * 0.06, 22, 48);
+    var gw = gh * 0.62;
+    // 겹 그림 양 끝에 걸리면 이어 붙일 때 잘리므로 끝은 비운다
+    var xs = Runner.scatter(SEED + 5, T, Math.max(3, Math.round(T / 260)), [[-1, gw * 1.5], [T - gw * 1.5, T + 1]], gw * 3);
+    var r = Runner.rng(SEED + 6);
+    for (var i = 0; i < xs.length; i++) {
+      var x = xs[i], h = gh * (0.75 + r() * 0.4), w = gw * (0.85 + r() * 0.3);
+      var lean = (r() - 0.5) * 0.18;
+      var base = L.groundY + 3;
+      ctx.save();
+      ctx.translate(x, base);
+      ctx.rotate(lean);
+      ctx.fillStyle = '#352b4c';
+      ctx.beginPath();
+      if (r() < 0.3) {
+        // 십자가
+        var bar = w * 0.28;
+        ctx.rect(-bar / 2, -h, bar, h);
+        ctx.rect(-w * 0.45, -h * 0.75, w * 0.9, bar);
+      } else {
+        ctx.moveTo(-w / 2, 0);
+        ctx.lineTo(-w / 2, -h + w / 2);
+        ctx.arc(0, -h + w / 2, w / 2, Math.PI, 0);
+        ctx.lineTo(w / 2, 0);
+        ctx.closePath();
+      }
+      ctx.fill();
+      // 빛을 받는 오른쪽 모서리
+      ctx.fillStyle = 'rgba(242, 230, 196, .08)';
+      ctx.fillRect(w * 0.18, -h + w * 0.5, w * 0.12, h - w * 0.5);
+      ctx.restore();
+    }
+  }
+
+  // 땅 위에 낮게 깔린 보랏빛 안개
+  function drawMist(L) {
+    var gy = L.groundY, band = L.h * 0.07;
+    var g = ctx.createLinearGradient(0, gy - band, 0, gy + band * 0.4);
+    g.addColorStop(0, 'rgba(150, 120, 190, 0)');
+    g.addColorStop(0.7, 'rgba(150, 120, 190, .16)');
+    g.addColorStop(1, 'rgba(150, 120, 190, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, gy - band, L.w, band * 1.4);
+  }
+
+  // 땅: 잿빛 흙길. 하늘·언덕보다 밝아서 경계가 또렷하다
+  function drawGround(L, T) {
+    var gy = L.groundY;
+    var g = ctx.createLinearGradient(0, gy, 0, L.h);
+    g.addColorStop(0, '#5a4d68');
+    g.addColorStop(0.35, '#43384f');
+    g.addColorStop(1, '#261e2f');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, gy, T, L.h - gy);
+    ctx.fillStyle = 'rgba(242, 230, 196, .45)';
+    ctx.fillRect(0, gy, T, 1.5);
+
+    var r = Runner.rng(SEED + 7);
+    // 끝에 걸친 것은 반대쪽 끝에도 한 번 더 그려 이어 붙일 때 이음매가 없게 한다
+    function wrapped(x, draw) { draw(x); if (x < 12) draw(x + T); if (x > T - 12) draw(x - T); }
+    // 흙덩이
+    for (var i = 0; i < T / 18; i++) {
+      var y = gy + 8 + r() * (L.h - gy - 10), rx = 2 + r() * 6, ry = 1 + r() * 2;
+      var a = (0.12 + r() * 0.14).toFixed(2);
+      wrapped(r() * T, function (x) {
+        ctx.fillStyle = 'rgba(20, 14, 28,' + a + ')';
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+    // 땅 위로 삐죽 솟은 마른 풀
+    ctx.strokeStyle = SHADOW;
+    ctx.lineWidth = 1.2;
+    for (var j = 0; j < T / 9; j++) {
+      var len = 3 + r() * 8, bx = (r() - 0.5) * 4, tx = (r() - 0.5) * 6;
+      wrapped(r() * T, function (px) {
+        ctx.beginPath();
+        ctx.moveTo(px, gy + 1);
+        ctx.quadraticCurveTo(px + bx, gy - len * 0.5, px + tx, gy - len);
+        ctx.stroke();
+      });
+    }
+  }
+
+  // 가장자리를 어둡게
+  function drawVignette(L) {
+    var v = ctx.createRadialGradient(L.w / 2, L.h * 0.45, Math.min(L.w, L.h) * 0.35, L.w / 2, L.h * 0.45, Math.max(L.w, L.h) * 0.8);
+    v.addColorStop(0, 'rgba(8, 5, 14, 0)');
+    v.addColorStop(1, 'rgba(8, 5, 14, .55)');
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, L.w, L.h);
+  }
+
+  // 한 겹을 따로 그려 둘 캔버스. top~bottom 띠만 담아 매 프레임 옮겨 그리는 양을 줄인다.
+  function makeLayer(T, top, bottom, dpr, paint) {
+    var c = document.createElement('canvas');
+    c.width = Math.ceil(T * dpr);
+    c.height = Math.ceil((bottom - top) * dpr);
+    var keep = ctx;
+    ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, -top * dpr);
+    paint();
+    ctx = keep;
+    return { canvas: c, T: T, top: top, h: bottom - top };
+  }
+
+  var layers = null;
+
+  function buildLayers(L, dpr) {
+    var gy = L.groundY, w = L.w;
+    var midTop = gy - Math.max(treeSize(L) * 1.25, spiralSize(L) * 1.5) - 8;
+    var mistBand = L.h * 0.07;
+    return {
+      // 멈춰 있는 하늘
+      sky: makeLayer(w, 0, L.h, dpr, function () { drawSky(L); }),
+      far: makeLayer(w * 2, gy - L.h * 0.2 - 6, gy + 4, dpr, function () { drawFarHills(L, w * 2); }),
+      near: makeLayer(w * 2, gy - L.h * 0.11 - 6, gy + 4, dpr, function () { drawNearHills(L, w * 2); }),
+      // 나선 언덕과 나무는 처음 화면에 보이게 앞쪽에 두고, 뒤쪽엔 다른 나무 한 그루와 묘비들
+      mid: makeLayer(w * 3, midTop, gy + 4, dpr, function () {
+        drawTree(L, Math.max(L.heroX + L.heroW + treeSize(L) * 0.5, w * 0.4), SEED + 4, treeSize(L));
+        drawSpiralHill(L, w * 0.7);
+        drawTree(L, w * 1.95, SEED + 11, treeSize(L) * 0.8);
+        drawGraves(L, w * 3);
+      }),
+      mist: makeLayer(w, gy - mistBand, gy + mistBand * 0.4, dpr, function () { drawMist(L); }),
+      ground: makeLayer(w * 2, gy - 12, L.h, dpr, function () { drawGround(L, w * 2); }),
+      vignette: makeLayer(w, 0, L.h, dpr, function () { drawVignette(L); })
+    };
+  }
+
+  // 겹 하나를 왼쪽으로 밀어 그리고, 빈 오른쪽은 같은 그림을 이어 붙여 채운다
+  function blit(layer, factor) {
+    var o = factor ? Runner.scrollOffset(game.dist, factor, L.heroH, layer.T) : 0;
+    ctx.drawImage(layer.canvas, -o, layer.top, layer.T, layer.h);
+    if (factor && layer.T - o < L.w) ctx.drawImage(layer.canvas, layer.T - o, layer.top, layer.T, layer.h);
+  }
+
+  function drawScene() {
+    var S = Runner.SCROLL;
+    blit(layers.sky, 0);
+    blit(layers.far, S.far);
+    blit(layers.near, S.near);
+    blit(layers.mid, S.mid);
+    blit(layers.mist, 0);
+    blit(layers.ground, S.ground);
+    blit(layers.vignette, 0);
+  }
+
+  function render() {
+    var f = Runner.frame(window.innerWidth, window.innerHeight);
+    var w = f.w, h = f.h;
+    stage.style.setProperty('--frame-w', w + 'px');
+    stage.style.setProperty('--frame-h', h + 'px');
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    L = Runner.layout(w, h);
+    layers = buildLayers(L, dpr);
+    drawScene();
+    hero.style.setProperty('--hero-x', L.heroX + 'px');
+    hero.style.setProperty('--hero-y', L.heroY + 'px');
+    hero.style.setProperty('--hero-w', L.heroW + 'px');
+    hero.style.setProperty('--hero-h', L.heroH + 'px');
+    placeHero();
+    placeLanterns();
+    placeCandies();
+    placeBats();
+  }
+
+  var L = null, last = 0;
+  var game = Runner.world((Math.random() * 4294967296) >>> 0);
+  var pool = [];
+
+  function placeHero() {
+    hero.style.transform = 'translateY(' + (-Math.round(game.hero.y * L.heroH)) + 'px)';
+  }
+
+  // 화면에 보이는 호박 수만큼 그림을 만들어 두고 다시 쓴다
+  function placeLanterns() {
+    var u = L.heroH;
+    // 그림(viewBox 100) 안에서 호박 몸통 지름은 약 80이다
+    var box = LANTERN_BOX * u;
+    var ls = game.lanterns;
+    while (pool.length < ls.length) {
+      var el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      el.setAttribute('class', 'lantern');
+      el.setAttribute('aria-hidden', 'true');
+      var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      use.setAttribute('href', '#pumpkin');
+      el.appendChild(use);
+      stage.insertBefore(el, hero);
+      pool.push(el);
+    }
+    for (var i = 0; i < pool.length; i++) {
+      var p = pool[i];
+      if (i >= ls.length) { p.style.display = 'none'; continue; }
+      var ln = ls[i];
+      p.style.display = '';
+      p.style.width = box + 'px';
+      p.style.height = box + 'px';
+      var cx = ln.x * u - box / 2;
+      var cy = L.groundY - Runner.LANTERN.size / 2 * u - box / 2;
+      p.style.transform = 'translate(' + cx.toFixed(1) + 'px,' + cy.toFixed(1) + 'px) rotate(' + ln.turn.toFixed(3) + 'rad)';
+    }
+  }
+  var LANTERN_BOX = Runner.LANTERN.size / 0.8;
+
+  // 사탕도 화면에 보이는 수만큼 그림을 만들어 두고 다시 쓴다
+  var candyPool = [];
+  var CANDY_BOX = 0.6; // 그림(viewBox 100) 안에서 포장지까지 너비는 약 86
+  function candyEl(cls, href) {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    el.setAttribute('class', cls);
+    el.setAttribute('aria-hidden', 'true');
+    var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'bob');
+    var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', href || '#candy');
+    g.appendChild(use);
+    el.appendChild(g);
+    return el;
+  }
+  // 박쥐도 같은 방식으로 그림을 다시 쓴다. 그림(viewBox 100) 안에서 날개 끝까지 너비는 약 92
+  var batPool = [];
+  var BAT_BOX = Runner.BAT.size / 0.92;
+  function placeBats() {
+    var u = L.heroH, box = BAT_BOX * u, bs = game.bats;
+    while (batPool.length < bs.length) {
+      var el = candyEl('bat', '#bat');
+      stage.insertBefore(el, hero);
+      batPool.push(el);
+    }
+    for (var i = 0; i < batPool.length; i++) {
+      var p = batPool[i];
+      if (i >= bs.length) { p.style.display = 'none'; continue; }
+      p.style.display = '';
+      p.style.width = box + 'px';
+      p.style.height = box + 'px';
+      var x = bs[i].x * u - box / 2, y = L.groundY - Runner.BAT.height * u - box / 2;
+      p.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
+    }
+  }
+
+  function placeCandies() {
+    var u = L.heroH, box = CANDY_BOX * u, cs = game.candies;
+    while (candyPool.length < cs.length) {
+      var el = candyEl('candy');
+      stage.insertBefore(el, hero);
+      candyPool.push(el);
+    }
+    for (var i = 0; i < candyPool.length; i++) {
+      var p = candyPool[i];
+      if (i >= cs.length) { p.style.display = 'none'; continue; }
+      p.style.display = '';
+      p.style.width = box + 'px';
+      p.style.height = box + 'px';
+      var x = cs[i].x * u - box / 2, y = L.groundY - Runner.CANDY.height * u - box / 2;
+      p.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
+    }
+  }
+
+  // 효과 그림은 애니메이션이 끝나면 지운다
+  function addFx(el) {
+    el.addEventListener('animationend', function (e) {
+      if (e.target === el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    fx.appendChild(el);
+  }
+
+  // 먹은 사탕은 그 자리에서 톡 터지고, 유령이 보호막을 두른다.
+  // 막이 깨지면 호박이 튕겨 나가고 분홍 고리와 불똥이 터진다.
+  var shieldTime = document.querySelector('#hero .shield-time'), shownSecs = 0;
+  var SHIELD_SPARKS = ['#ffb3d6', '#7fe0c4', '#fff', '#ff7eb6'];
+  function itemFx() {
+    var u = L.heroH, box = CANDY_BOX * u;
+    while (game.picked.length) {
+      var cd = game.picked.shift();
+      Music.candy();
+      Buzz.candy();
+      var pop = candyEl('candy-pop');
+      pop.style.left = (cd.x * u - box / 2) + 'px';
+      pop.style.top = (L.groundY - Runner.CANDY.height * u - box / 2) + 'px';
+      pop.style.width = box + 'px';
+      pop.style.height = box + 'px';
+      addFx(pop);
+    }
+    while (game.knocked.length) {
+      var ln = game.knocked.shift(), bat = ln.kind === 'bat';
+      Music.pop();
+      Buzz.block();
+      var lb = (bat ? BAT_BOX : LANTERN_BOX) * u, cy = bat ? Runner.BAT.height : Runner.LANTERN.size / 2;
+      var k = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      k.setAttribute('class', 'knocked');
+      k.setAttribute('aria-hidden', 'true');
+      var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      use.setAttribute('href', bat ? '#bat' : '#pumpkin');
+      k.appendChild(use);
+      k.style.left = (ln.x * u - lb / 2) + 'px';
+      k.style.top = (L.groundY - cy * u - lb / 2) + 'px';
+      k.style.width = lb + 'px';
+      k.style.height = lb + 'px';
+      k.style.setProperty('--r0', (bat ? 0 : ln.turn).toFixed(3) + 'rad');
+      k.style.setProperty('--kx', (1.8 * u) + 'px');
+      k.style.setProperty('--ky', (-1.6 * u) + 'px');
+      addFx(k);
+      var p = hitPoint(ln);
+      var cx = L.heroX + L.heroW * 0.55, cy = L.heroY - game.hero.y * u + L.heroH * 0.5, rr = L.heroH * 0.62;
+      var ring = document.createElement('span');
+      ring.className = 'shield-burst';
+      ring.style.left = (cx - rr) + 'px';
+      ring.style.top = (cy - rr) + 'px';
+      ring.style.width = ring.style.height = (rr * 2) + 'px';
+      addFx(ring);
+      sparks(p, 12, SHIELD_SPARKS);
+      stage.classList.remove('is-bump');
+      void stage.offsetWidth;
+      stage.classList.add('is-bump');
+    }
+    stage.classList.toggle('has-shield', game.shield > 0);
+    stage.classList.toggle('shield-ending', game.shield > 0 && game.shield < 2);
+    var secs = Math.ceil(game.shield);
+    if (secs !== shownSecs) {
+      if (secs > shownSecs && shownSecs > 0) {
+        shieldTime.classList.remove('is-more');
+        void shieldTime.getBoundingClientRect();
+        shieldTime.classList.add('is-more');
+      }
+      shownSecs = secs;
+      shieldTime.textContent = secs;
+    }
+    stage.classList.toggle('is-safe', game.safe > 0);
+  }
+
+  var scoreEl = document.getElementById('score');
+  var shownScore = 0;
+  function showScore() {
+    var s = Runner.score(game);
+    if (s !== shownScore) { shownScore = s; scoreEl.textContent = s; }
+  }
+
+  // 부딪힌 자리: 호박 가운데에서 유령 쪽으로 반지름만큼 간 곳
+  function hitPoint(ln) {
+    var u = L.heroH, bat = ln.kind === 'bat';
+    var cy = bat ? Runner.BAT.height : Runner.LANTERN.size / 2, r = bat ? Runner.BAT.reach : cy;
+    var dx = (L.heroX + L.heroW / 2) / u - ln.x, dy = game.hero.y + 0.5 - cy;
+    var d = Math.sqrt(dx * dx + dy * dy) || 1;
+    return { x: (ln.x + dx / d * r) * u, y: L.groundY - (cy + dy / d * r) * u };
+  }
+
+  var POW = (function () {
+    var d = '';
+    for (var i = 0; i < 20; i++) {
+      var a = i / 20 * Math.PI * 2 - Math.PI / 2, r = i % 2 ? 22 : 46;
+      d += (i ? 'L' : 'M') + (Math.cos(a) * r).toFixed(1) + ' ' + (Math.sin(a) * r).toFixed(1);
+    }
+    return d + 'Z';
+  })();
+  var SPARK_COLORS = ['#ffe08a', '#ffab52', '#ff8a1f', '#f2e6c4'];
+
+  var fx = document.getElementById('fx'), flash = document.getElementById('flash');
+  function sparks(p, n, colors) {
+    for (var i = 0; i < n; i++) {
+      var s = document.createElement('span');
+      var a = Math.random() * Math.PI * 2, far = L.heroH * (0.5 + Math.random() * 0.7);
+      s.className = 'spark';
+      s.style.left = p.x + 'px';
+      s.style.top = p.y + 'px';
+      s.style.setProperty('--dx', (Math.cos(a) * far).toFixed(1) + 'px');
+      s.style.setProperty('--dy', (Math.sin(a) * far - L.heroH * 0.25).toFixed(1) + 'px');
+      s.style.setProperty('--s', (4 + Math.random() * 6).toFixed(1) + 'px');
+      s.style.setProperty('--c', colors[i % colors.length]);
+      addFx(s);
+    }
+  }
+  function crash() {
+    var p = hitPoint(game.hit);
+    Music.hit();
+    Buzz.hit();
+    Music.stop();
+    fx.textContent = '';
+    stage.classList.remove('has-shield', 'shield-ending', 'is-safe', 'is-bump');
+    speedEl.hidden = true;
+    var pow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    pow.setAttribute('class', 'pow');
+    pow.setAttribute('viewBox', '-50 -50 100 100');
+    pow.innerHTML = '<path d="' + POW + '" fill="#ffe08a" stroke="#0e0a16" stroke-width="4" stroke-linejoin="round"/>';
+    pow.style.left = p.x + 'px';
+    pow.style.top = p.y + 'px';
+    fx.appendChild(pow);
+    sparks(p, 14, SPARK_COLORS);
+    flash.style.setProperty('--fx', p.x + 'px');
+    flash.style.setProperty('--fy', p.y + 'px');
+    stage.classList.remove('is-hit');
+    void stage.offsetWidth; // 다시하기 뒤에 또 부딪혀도 흔들림이 처음부터 다시 돈다
+    stage.classList.add('is-hit');
+    startBtn.hidden = true;
+  }
+
+  var BEST_KEY = 'hooni-runner-best';
+  function loadBest() {
+    try { return parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { return 0; }
+  }
+  function saveBest(v) {
+    try { localStorage.setItem(BEST_KEY, String(v)); } catch (e) {}
+  }
+
+  // 부딪히고 잠깐 멈춘 뒤에 게임 오버 창을 띄운다
+  var OVER_DELAY = 700;
+  var overEl = document.getElementById('over'), retryBtn = document.getElementById('retry');
+  var hitAt = 0, overShown = false;
+  function showOver() {
+    overShown = true;
+    var s = Runner.score(game), best = loadBest();
+    if (s > best) saveBest(s);
+    document.getElementById('over-score').textContent = s;
+    document.getElementById('over-best').textContent = Math.max(s, best);
+    document.getElementById('over-new').hidden = !(s > best && s > 0);
+    overEl.hidden = false;
+    retryBtn.focus();
+  }
+
+  function retry() {
+    if (!game.over || !overShown) return;
+    Runner.restart(game);
+    overShown = false;
+    overEl.hidden = true;
+    stage.classList.remove('is-hit');
+    fx.textContent = '';
+    startBtn.hidden = false;
+    syncButton();
+    showScore();
+    placeCandies();
+    placeBats();
+    itemFx();
+  }
+  retryBtn.addEventListener('click', retry);
+
+  function tick(t) {
+    var dt = last && !game.paused ? (t - last) / 1000 : 0;
+    last = t;
+    var before = game.dist, wasOver = game.over;
+    Runner.update(game, dt, L.w / L.heroH, L.heroX / L.heroH);
+    Music.setPace(Runner.pace(game));
+    if (game.dist !== before) drawScene();
+    placeHero();
+    placeLanterns();
+    placeCandies();
+    placeBats();
+    itemFx();
+    while (game.speedUps.length) showSpeedUp(game.speedUps.shift());
+    if (game.over && !wasOver) { hitAt = t; crash(); }
+    if (game.over && !overShown && t - hitAt >= OVER_DELAY) showOver();
+    showScore();
+    requestAnimationFrame(tick);
+  }
+
+  // 진동. 휴대폰처럼 손가락으로 쓰는 기기에서만 진동기를 울린다.
+  // 진동을 못 하는 브라우저(아이폰 사파리 등)에서는 아무 일도 없다.
+  // 부딪힘처럼 긴 진동이 울리는 동안에는 톡 같은 약한 진동이 끊지 못한다.
+  var Buzz = (function () {
+    var ok = typeof navigator.vibrate === 'function' && window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    var busyUntil = 0;
+    function go(p, hold) {
+      if (!ok) return;
+      var now = performance.now();
+      if (now < busyUntil) return;
+      try { navigator.vibrate(p); } catch (e) { return; }
+      if (hold) busyUntil = now + [].concat(p).reduce(function (a, b) { return a + b; }, 0);
+    }
+    return {
+      tap: function () { go(12); },                                  // 버튼, 화면 톡: 짧고 약하게
+      candy: function () { go([18, 60, 18]); },                      // 사탕 먹음: 톡톡
+      block: function () { go([90, 50, 40], true); },                // 보호막이 막아 냄: 쿵, 짧은 여운
+      speedUp: function () { go([30, 80, 30, 80, 30]); },            // 스피드 업: 짧게 세 번
+      hit: function () { busyUntil = 0; go([320, 120, 320, 120, 320], true); }  // 부딪힘: 길고 강하게 세 번
+    };
+  })();
+  stage.addEventListener('pointerdown', function (e) {
+    if (e.pointerType !== 'mouse') Buzz.tap();
+  });
+
+  // 스페이스로 점프한다. 누르고 있어도 한 번만 뛰고, 공중에서는 다시 뛰지 못한다.
+  // 게임 오버 창이 떠 있으면 스페이스가 다시하기다.
+  window.addEventListener('keydown', function (e) {
+    if (e.code !== 'Space') return;
+    e.preventDefault();
+    if (e.repeat) return;
+    if (game.over) { retry(); return; }
+    if (Runner.tryJump(game)) Music.jump();
+  });
+  // 화면을 톡 쳐도(마우스로 눌러도) 뛴다. 버튼을 누를 때와 게임 오버 창이 떠 있을 때는 뛰지 않는다.
+  // 손을 대는 순간 뛰어야 늦지 않으므로 click이 아니라 pointerdown으로 받는다.
+  stage.addEventListener('pointerdown', function (e) {
+    if (e.button > 0 || game.over || e.target.closest('button')) return;
+    e.preventDefault();
+    if (Runner.tryJump(game)) Music.jump();
+  });
+
+  var startBtn = document.getElementById('start');
+  // 스피드 업 알림. 빠르기 배수를 함께 보인다(×1.25, ×1.5, ×1.75, ×2)
+  var speedEl = document.getElementById('speedup'), speedX = document.getElementById('speedup-x');
+  function showSpeedUp(v) {
+    Buzz.speedUp();
+    speedX.textContent = '×' + (+v.toFixed(2));
+    speedEl.hidden = false;
+    speedEl.classList.remove('is-on');
+    void speedEl.offsetWidth;
+    speedEl.classList.add('is-on');
+  }
+  speedEl.addEventListener('animationend', function () { speedEl.hidden = true; speedEl.classList.remove('is-on'); });
+
+  // 배경음: 으스스한 단조 왈츠. Web Audio로 직접 합성한다.
+  // 낮게 깔린 웅웅거림 위에 쿵-짝-짝 왈츠 반주, 앞 8마디는 오르골 선율, 뒤 8마디는 테레민처럼 미끄러지는 선율.
+  // D 화성단음계(레 미 파 솔 라 시♭ 도♯), 화음은 Dm - B♭ - Gm - A.
+  var Music = (function () {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    var KEY = 'hooni-runner-sound', VOLUME = 0.9, BEAT = 60 / 104;
+    var CHORDS = [[38, [50, 53, 57]], [34, [50, 53, 58]], [31, [50, 55, 58]], [33, [49, 52, 57]]]; // 베이스, 반주 화음
+    var PROG = [0, 1, 2, 3, 0, 1, 3, 0];
+    // [박, 음, 길이(박)]
+    var BOX = [
+      [[0, 69, 1], [1, 74, 1], [2, 73, .5], [2.5, 74, .5]],
+      [[0, 70, 1.5], [1.5, 69, .5], [2, 65, 1]],
+      [[0, 67, 1], [1, 70, 1], [2, 69, .5], [2.5, 67, .5]],
+      [[0, 64, 1], [1, 73, 1.5], [2.5, 69, .5]],
+      [[0, 74, 1], [1, 77, 1], [2, 76, .5], [2.5, 74, .5]],
+      [[0, 70, 1], [1, 74, .5], [1.5, 73, .5], [2, 70, 1]],
+      [[0, 67, 1], [1, 65, .5], [1.5, 64, .5], [2, 61, 1]],
+      [[0, 62, 3]]
+    ];
+    var GLIDE = [
+      [[0, 69, 3]], [[0, 70, 3]], [[0, 67, 1.5], [1.5, 70, 1.5]], [[0, 69, 3]],
+      [[0, 74, 3]], [[0, 70, 3]], [[0, 67, 1.5], [1.5, 64, 1.5]], [[0, 62, 3]]
+    ];
+    var ctx = null, master = null, bus = null, sfx = null, timer = 0, on = false, bar = 0, nextAt = 0, tempo = 1, lastGlide = 69;
+    var muted = false;
+    try { muted = localStorage.getItem(KEY) === 'off'; } catch (e) {}
+
+    function hz(n) { return 440 * Math.pow(2, (n - 69) / 12); }
+    function setup() {
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = 0;
+      // 끝에 압축기를 둬서 전체를 키워도 큰 소리가 깨지지 않게 한다
+      var comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -18;
+      comp.knee.value = 12;
+      comp.ratio.value = 4;
+      comp.attack.value = 0.005;
+      comp.release.value = 0.25;
+      master.connect(comp);
+      comp.connect(ctx.destination);
+      // 효과음은 음악과 따로 낸다. 게임 오버로 음악이 꺼져도 부딪히는 소리는 끝까지 들린다
+      sfx = ctx.createGain();
+      sfx.gain.value = muted ? 0 : 1;
+      sfx.connect(comp);
+      // 울림: 잡음이 서서히 잦아드는 소리를 임펄스로 쓴 리버브
+      var len = Math.round(ctx.sampleRate * 2.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (var c = 0; c < 2; c++) {
+        var d = ir.getChannelData(c);
+        for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+      }
+      var verb = ctx.createConvolver(), wet = ctx.createGain();
+      verb.buffer = ir;
+      wet.gain.value = 0.45;
+      bus = ctx.createGain();
+      bus.connect(master);
+      bus.connect(verb);
+      verb.connect(wet);
+      wet.connect(master);
+      // 바닥에 깔린 웅웅거림: 낮은 레와 라를 톱니파로 내고 필터를 천천히 여닫는다
+      var lp = ctx.createBiquadFilter(), dg = ctx.createGain(), lfo = ctx.createOscillator(), lfoAmp = ctx.createGain();
+      lp.type = 'lowpass';
+      lp.frequency.value = 520;
+      lfo.frequency.value = 0.07;
+      lfoAmp.gain.value = 120;
+      lfo.connect(lfoAmp);
+      lfoAmp.connect(lp.frequency);
+      dg.gain.value = 0.07;
+      [38, 45, 38.08].forEach(function (n) {
+        var o = ctx.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = hz(n);
+        o.connect(lp);
+        o.start();
+      });
+      lp.connect(dg);
+      dg.connect(bus);
+      lfo.start();
+    }
+    function pluck(t, n, len, vol, type) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type || 'triangle';
+      o.frequency.value = hz(n);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      o.connect(g);
+      g.connect(bus);
+      o.start(t);
+      o.stop(t + len + 0.05);
+    }
+    // 오르골: 사인파에 한 옥타브 위 소리를 살짝 섞는다
+    function bell(t, n, len, vol) {
+      pluck(t, n, len, vol, 'sine');
+      pluck(t, n + 12, len * 0.45, vol * 0.3, 'sine');
+    }
+    // 테레민: 떨리는 사인파가 앞 음에서 미끄러져 온다
+    function glide(t, from, n, len, vol) {
+      var o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), depth = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(hz(from), t);
+      o.frequency.exponentialRampToValueAtTime(hz(n), t + 0.22);
+      lfo.frequency.value = 5.5;
+      depth.gain.value = hz(n) * 0.014;
+      lfo.connect(depth);
+      depth.connect(o.frequency);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.18);
+      g.gain.setValueAtTime(vol, t + Math.max(0.2, len - 0.3));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      o.connect(g);
+      g.connect(bus);
+      o.start(t);
+      lfo.start(t);
+      o.stop(t + len + 0.05);
+      lfo.stop(t + len + 0.05);
+    }
+    // ---- 효과음 ----
+    // 잡음 한 줌을 필터로 깎아 낸다(퍽, 팡)
+    function noise(t, len, vol, type, freq) {
+      var n = Math.round(ctx.sampleRate * len), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = buf;
+      f.type = type;
+      f.frequency.value = freq;
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      src.connect(f);
+      f.connect(g);
+      g.connect(sfx);
+      src.start(t);
+    }
+    // 천이 휙 펄럭이는 소리: 잡음을 좁은 필터로 훑어 올리고, 빠르게 떨리게 한다
+    function flap(t, len, vol, f0, f1) {
+      var n = Math.round(ctx.sampleRate * len), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), flutter = ctx.createGain();
+      var lfo = ctx.createOscillator(), depth = ctx.createGain();
+      src.buffer = buf;
+      f.type = 'bandpass';
+      f.Q.value = 1.4;
+      f.frequency.setValueAtTime(f0, t);
+      f.frequency.exponentialRampToValueAtTime(f1, t + len * 0.7);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + len * 0.25);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      // 펄럭임: 소리 크기를 1초에 26번 흔든다
+      flutter.gain.value = 0.6;
+      lfo.frequency.value = 26;
+      depth.gain.value = 0.4;
+      lfo.connect(depth);
+      depth.connect(flutter.gain);
+      src.connect(f);
+      f.connect(g);
+      g.connect(flutter);
+      flutter.connect(sfx);
+      src.start(t);
+      lfo.start(t);
+      lfo.stop(t + len + 0.05);
+    }
+    // 음 높이가 미끄러지는 소리. wobble이 있으면 떨린다
+    function sweep(t, f0, f1, len, vol, type, wobble) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f0, t);
+      o.frequency.exponentialRampToValueAtTime(f1, t + len);
+      if (wobble) {
+        var lfo = ctx.createOscillator(), depth = ctx.createGain();
+        lfo.frequency.value = wobble;
+        depth.gain.value = f1 * 0.06;
+        lfo.connect(depth);
+        depth.connect(o.frequency);
+        lfo.start(t);
+        lfo.stop(t + len + 0.05);
+      }
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      o.connect(g);
+      g.connect(sfx);
+      o.start(t);
+      o.stop(t + len + 0.05);
+    }
+
+    function playBar(b, t) {
+      var B = BEAT / tempo, i = b % 8, second = Math.floor(b / 8) % 2 === 1, ch = CHORDS[PROG[i]];
+      // 쿵-짝-짝
+      pluck(t, ch[0], B * 1.4, 0.3);
+      pluck(t, ch[0] + 12, B * 1.1, 0.18);
+      for (var k = 1; k < 3; k++) {
+        for (var c = 0; c < ch[1].length; c++) pluck(t + k * B, ch[1][c] + 12, B * 0.5, 0.07);
+      }
+      if (!second) {
+        BOX[i].forEach(function (nt) { bell(t + nt[0] * B, nt[1] + 12, nt[2] * B * 1.6 + 0.3, 0.22); });
+      } else {
+        GLIDE[i].forEach(function (nt) { glide(t + nt[0] * B, lastGlide, nt[1], nt[2] * B, 0.16); lastGlide = nt[1]; });
+        // 뒤 8마디에는 화음을 높은 오르골로 잘게 짚는다
+        [0, 1, 2, 1, 2, 1].forEach(function (ci, e) { bell(t + e * B / 2, ch[1][ci] + 24, B, 0.06); });
+      }
+    }
+    function schedule() {
+      while (nextAt < ctx.currentTime + 0.25) {
+        playBar(bar, nextAt);
+        nextAt += 3 * BEAT / tempo;
+        bar++;
+      }
+    }
+    function fadeTo(v, sec) {
+      var now = ctx.currentTime;
+      master.gain.cancelScheduledValues(now);
+      master.gain.setValueAtTime(master.gain.value, now);
+      master.gain.linearRampToValueAtTime(v, now + sec);
+    }
+    return {
+      muted: function () { return muted; },
+      // 시작이나 다시 시작할 때. 처음 한 번은 버튼을 누른 순간에 만들어야 브라우저가 소리를 허락한다
+      play: function () {
+        if (!AC) return;
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+        if (!ctx) setup();
+        if (ctx.state === 'suspended') ctx.resume();
+        if (!on) {
+          on = true;
+          bar = 0;
+          lastGlide = 69;
+          nextAt = ctx.currentTime + 0.1;
+          schedule();
+          timer = setInterval(schedule, 50);
+        }
+        fadeTo(muted ? 0 : VOLUME, 0.6);
+      },
+      // 일시정지: 그 자리에서 멈췄다가 이어진다
+      pause: function () { if (ctx && ctx.state === 'running') ctx.suspend(); },
+      // 게임 오버: 부딪히는 소리가 잘 들리게 음악은 금방 줄어든다
+      stop: function () {
+        if (!ctx || !on) return;
+        on = false;
+        clearInterval(timer);
+        fadeTo(0, 0.5);
+      },
+      // 게임 오버로 부딪힘: 둔탁한 쿵, 통 하고 튀는 소리, 그리고 유령이 우우~ 하며 내려앉는다
+      hit: function () {
+        if (!ctx) return;
+        var t = ctx.currentTime + 0.01;
+        sweep(t, 170, 45, 0.38, 0.7, 'sine');
+        noise(t, 0.22, 0.55, 'lowpass', 1600);
+        sweep(t, 380, 120, 0.26, 0.6, 'triangle'); // 작은 스피커에서도 들리는 쿵
+        sweep(t, 720, 340, 0.16, 0.5, 'triangle');
+        sweep(t + 0.32, 560, 140, 1.0, 0.38, 'sine', 6);
+      },
+      // 점프: 보자기가 휙 펄럭인다. 자주 나니까 작고 짧게
+      jump: function () {
+        if (!ctx) return;
+        var t = ctx.currentTime + 0.005;
+        flap(t, 0.28, 1.6, 500, 2200);
+        sweep(t, 300, 520, 0.18, 0.12, 'sine');
+      },
+      // 사탕을 먹음: 뽁 하고 입에 넣고, 반짝이는 소리가 올라간다
+      candy: function () {
+        if (!ctx) return;
+        var t = ctx.currentTime + 0.005;
+        sweep(t, 320, 1100, 0.07, 0.45, 'sine');
+        [1319, 1568, 1976, 2637].forEach(function (f, i) {
+          sweep(t + 0.06 + i * 0.055, f, f, 0.3, 0.16, 'sine');
+          sweep(t + 0.06 + i * 0.055, f * 2, f * 2, 0.12, 0.04, 'sine');
+        });
+      },
+      // 보호막이 깨짐: 거품이 팡 터지며 반짝
+      pop: function () {
+        if (!ctx) return;
+        var t = ctx.currentTime + 0.01;
+        noise(t, 0.16, 0.55, 'highpass', 2400);
+        sweep(t, 1300, 2600, 0.12, 0.4, 'triangle');
+        sweep(t, 420, 160, 0.2, 0.4, 'sine');
+        sweep(t + 0.05, 1760, 1760, 0.35, 0.12, 'sine');
+        sweep(t + 0.1, 2637, 2637, 0.3, 0.08, 'sine');
+      },
+      // 빨라질수록 곡도 조금 빨라진다(2배일 때 1.2배)
+      setPace: function (k) { tempo = 1 + (k - 1) * 0.2; },
+      setMuted: function (m) {
+        muted = m;
+        try { localStorage.setItem(KEY, m ? 'off' : 'on'); } catch (e) {}
+        if (ctx && on) fadeTo(m ? 0 : VOLUME, 0.25);
+        if (sfx) sfx.gain.setValueAtTime(m ? 0 : 1, ctx.currentTime);
+      }
+    };
+  })();
+
+  function syncButton() {
+    stage.classList.toggle('is-paused', game.started && game.paused);
+    var on = Runner.playing(game);
+    startBtn.classList.toggle('is-playing', on);
+    startBtn.setAttribute('aria-label', on ? '일시정지' : '시작');
+    if (on) Music.play();
+    else if (game.paused) Music.pause();
+  }
+  // 마우스로 누른 버튼은 바로 포커스를 놓는다. 그래야 스페이스가 버튼을 다시 누르지 않고 점프만 한다.
+  function release(e, btn) { if (e.detail > 0) btn.blur(); }
+  startBtn.addEventListener('click', function (e) {
+    Runner.toggle(game);
+    syncButton();
+    release(e, startBtn);
+  });
+  var soundBtn = document.getElementById('sound');
+  function syncSound() {
+    var m = Music.muted();
+    soundBtn.classList.toggle('is-muted', m);
+    soundBtn.setAttribute('aria-label', m ? '소리 켜기' : '소리 끄기');
+  }
+  soundBtn.addEventListener('click', function (e) {
+    Music.setMuted(!Music.muted());
+    syncSound();
+    release(e, soundBtn);
+  });
+  syncSound();
+  // 다른 탭으로 가면 저절로 일시정지한다
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && Runner.playing(game)) { Runner.toggle(game); syncButton(); }
+  });
+
+  var pending = 0;
+  window.addEventListener('resize', function () {
+    cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(render);
+  });
+  render();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

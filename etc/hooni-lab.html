@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HOONI LAB ✦ 후니의 커뮤니티</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f3f4f7;
+      --card: #ffffff;
+      --text: #1f2329;
+      --sub: #8a8f99;
+      --line: #eceef2;
+      --blue: #3d7bfd;
+      --blue-soft: #eaf1ff;
+      --gold: #f5b83d;
+      --gold-soft: #fff6e2;
+      --radius: 14px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    button { font-family: inherit; cursor: pointer; }
+
+    /* ── 상단 헤더 ── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 0 24px;
+    }
+
+    .logo {
+      font-weight: 900;
+      font-size: 20px;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .logo .mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #5b8cff, #a66bff);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .logo b { color: var(--blue); }
+
+    .nav { display: flex; gap: 4px; }
+
+    .nav button {
+      border: none;
+      background: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--sub);
+    }
+
+    .nav button.active { color: var(--text); font-weight: 700; }
+    .nav button:hover { background: var(--bg); }
+
+    .search {
+      flex: 1;
+      max-width: 340px;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      border-radius: 999px;
+      padding: 8px 16px;
+      color: var(--sub);
+    }
+
+    .search input {
+      border: none;
+      background: none;
+      outline: none;
+      flex: 1;
+      min-width: 0;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .header-icons { display: flex; gap: 14px; font-size: 20px; align-items: center; }
+    .header-icons .bell { position: relative; }
+    .header-icons .bell::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: -2px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ff4d4f;
+    }
+
+    .avatar-sm {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ffd6e7, #d6e4ff);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+    }
+
+    /* ── 레이아웃 ── */
+    .layout {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 20px 16px 60px;
+      display: grid;
+      grid-template-columns: 200px minmax(0, 1fr) 300px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-title small { font-size: 12px; color: var(--sub); font-weight: 400; }
+
+    /* ── 왼쪽 사이드바 ── */
+    .side { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 4px; padding: 10px; }
+
+    .side button {
+      border: none;
+      background: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      color: var(--text);
+      text-align: left;
+    }
+
+    .side button .ico {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .side button:hover { background: var(--bg); }
+    .side button.active { background: var(--blue-soft); color: var(--blue); font-weight: 700; }
+
+    .side hr { border: none; border-top: 1px solid var(--line); margin: 6px 0; }
+
+    /* ── 가운데 ── */
+    .center { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+    /* 배너 슬라이드 */
+    .banner {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      aspect-ratio: 16 / 6;
+      min-height: 180px;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      color: #fff;
+      opacity: 0;
+      transition: opacity 0.6s;
+    }
+
+    .slide.active { opacity: 1; }
+
+    .slide .big-emoji {
+      position: absolute;
+      right: 6%;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: clamp(70px, 12vw, 130px);
+      filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.25));
+      animation: floaty 3s ease-in-out infinite;
+    }
+
+    @keyframes floaty {
+      0%, 100% { transform: translateY(-50%); }
+      50%      { transform: translateY(-58%); }
+    }
+
+    .slide .tag {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(4px);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .slide h2 { font-size: clamp(20px, 3vw, 28px); font-weight: 900; line-height: 1.3; }
+    .slide p { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+
+    .dots {
+      position: absolute;
+      bottom: 14px;
+      right: 20px;
+      display: flex;
+      gap: 6px;
+      z-index: 2;
+    }
+
+    .dots button {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(255, 255, 255, 0.5);
+      transition: width 0.3s;
+      padding: 0;
+    }
+
+    .dots button.active { width: 22px; background: #fff; }
+
+    /* 취미 카드 3개 */
+    .hobbies {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .hobby {
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--card);
+      border: 1px solid var(--line);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .hobby:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(30, 50, 90, 0.12); }
+
+    .hobby .cover {
+      height: 90px;
+      display: grid;
+      place-items: center;
+      font-size: 46px;
+    }
+
+    .hobby .info { padding: 10px 12px 12px; }
+    .hobby h3 { font-size: 15px; font-weight: 700; }
+    .hobby p { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
+    .hobby .meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .hobby .like {
+      border: none;
+      background: var(--bg);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 12px;
+      color: var(--sub);
+    }
+
+    .hobby .like.on { background: #ffe8ee; color: #ff4d7a; }
+
+    /* 피드 탭 */
+    .feed-tabs {
+      display: flex;
+      gap: 20px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 4px;
+    }
+
+    .feed-tabs button {
+      border: none;
+      background: none;
+      padding: 0 0 10px;
+      font-size: 15px;
+      color: var(--sub);
+      position: relative;
+    }
+
+    .feed-tabs button.active { color: var(--text); font-weight: 700; }
+    .feed-tabs button.active::after {
+      content: '';
+      position: absolute;
+      left: 20%;
+      right: 20%;
+      bottom: -1px;
+      height: 3px;
+      border-radius: 3px;
+      background: var(--blue);
+    }
+
+    .post {
+      display: grid;
+      grid-template-columns: 1fr 140px;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .post:last-child { border-bottom: none; }
+
+    .post .author {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .post .author .avatar-sm { width: 26px; height: 26px; font-size: 14px; }
+    .post .author .lv {
+      background: var(--gold-soft);
+      color: #c98a00;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .post .author time { color: var(--sub); font-size: 12px; }
+
+    .post h4 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .post .desc { font-size: 13px; color: #5c6370; line-height: 1.6; }
+
+    .post .stats {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--sub);
+    }
+
+    .post .stats button {
+      border: none;
+      background: none;
+      color: inherit;
+      font-size: inherit;
+    }
+
+    .post .stats button.on { color: #ff4d7a; }
+
+    .post .thumb {
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 48px;
+      aspect-ratio: 4 / 3;
+    }
+
+    .chip {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 8px;
+      border-radius: 4px;
+      margin-right: 6px;
+      font-weight: 500;
+      vertical-align: 2px;
+    }
+
+    /* ── 오른쪽 ── */
+    .right { display: flex; flex-direction: column; gap: 16px; }
+
+    .profile { text-align: center; position: relative; overflow: hidden; }
+
+    .profile .bg {
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 70px;
+      background: linear-gradient(120deg, #7aa7ff, #b48cff, #ff9ec7);
+    }
+
+    .profile .avatar-lg {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      margin: 26px auto 8px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background: linear-gradient(135deg, #ffe0ec, #dce8ff);
+      display: grid;
+      place-items: center;
+      font-size: 40px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .profile h3 { font-size: 18px; font-weight: 900; }
+    .profile h3 .lv {
+      font-size: 11px;
+      background: var(--gold-soft);
+      color: #c98a00;
+      padding: 2px 6px;
+      border-radius: 4px;
+      vertical-align: 3px;
+      margin-left: 4px;
+    }
+
+    .profile .bio { font-size: 12px; color: var(--sub); margin-top: 4px; }
+
+    .profile .nums {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      margin: 14px 0;
+    }
+
+    .profile .nums b { display: block; font-size: 17px; }
+    .profile .nums span { font-size: 12px; color: var(--sub); }
+
+    .btn-row { display: flex; gap: 8px; }
+
+    .btn {
+      flex: 1;
+      border: none;
+      border-radius: 999px;
+      padding: 9px 0;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .btn.primary { background: var(--blue); color: #fff; }
+    .btn.primary:hover { background: #2f69e6; }
+    .btn.ghost { background: var(--blue-soft); color: var(--blue); }
+    .btn.ghost:hover { background: #dce8ff; }
+    .btn.followed { background: var(--bg); color: var(--sub); }
+
+    /* 경험치 바 */
+    .exp { margin-top: 14px; text-align: left; font-size: 12px; color: var(--sub); }
+    .exp .bar { height: 6px; background: var(--bg); border-radius: 999px; overflow: hidden; margin-top: 4px; }
+    .exp .bar i {
+      display: block;
+      height: 100%;
+      width: 64%;
+      background: linear-gradient(90deg, var(--gold), #ff9a3d);
+      border-radius: 999px;
+      transition: width 0.5s;
+    }
+
+    /* 해시태그 */
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tags span {
+      background: var(--bg);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #5c6370;
+    }
+    .tags span:hover { background: var(--blue-soft); color: var(--blue); cursor: pointer; }
+
+    /* 토스트 */
+    .toast {
+      position: fixed;
+      left: 50%;
+      top: 80px;
+      transform: translate(-50%, -20px);
+      background: rgba(31, 35, 41, 0.9);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 100;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    /* 반짝 파티클 */
+    .spark {
+      position: fixed;
+      pointer-events: none;
+      z-index: 99;
+      font-size: 18px;
+      animation: spark 0.9s ease-out forwards;
+    }
+
+    @keyframes spark {
+      to { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; }
+    }
+
+    footer { text-align: center; color: var(--sub); font-size: 12px; padding-bottom: 30px; }
+
+    /* ── 반응형 ── */
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: minmax(0, 1fr) 280px; }
+      .side { display: none; }
+    }
+
+    @media (max-width: 820px) {
+      .layout { grid-template-columns: 1fr; }
+      .right { order: -1; }
+      .nav, .header-icons .bell, .header-icons .msg { display: none; }
+      .header { gap: 12px; padding: 0 16px; }
+    }
+
+    @media (max-width: 560px) {
+      .hobbies { grid-template-columns: 1fr; }
+      .hobby { display: grid; grid-template-columns: 90px 1fr; }
+      .hobby .cover { height: auto; }
+      .post { grid-template-columns: 1fr 90px; }
+      .slide { padding: 20px; }
+      .search { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 -->
+  <header class="header">
+    <div class="logo"><span class="mark">✦</span>HOONI<b>LAB</b></div>
+    <nav class="nav">
+      <button class="active">홈</button>
+      <button>이벤트</button>
+      <button>툴</button>
+      <button onclick="location.href='cyworld.html'">💾 미니홈피</button>
+    </nav>
+    <label class="search">🔍 <input placeholder="게임, 야구, 여행 검색하기..." /></label>
+    <div class="header-icons">
+      <span class="msg">💬</span>
+      <span class="bell">🔔</span>
+      <span class="avatar-sm">😎</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- 왼쪽 사이드바 -->
+    <aside class="card side">
+      <button class="active" data-filter="all"><span class="ico" style="background:#eaf1ff">🏠</span>전체</button>
+      <button data-filter="game"><span class="ico" style="background:#f3e8ff">🎮</span>게임</button>
+      <button data-filter="baseball"><span class="ico" style="background:#e3f7e8">⚾</span>야구</button>
+      <button data-filter="travel"><span class="ico" style="background:#e3f0ff">✈️</span>여행</button>
+      <hr />
+      <button id="helloSide"><span class="ico" style="background:#fff6e2">👋</span>인사하기</button>
+      <button onclick="location.href='cyworld.html'"><span class="ico" style="background:#ffe8f0">💾</span>미니홈피</button>
+    </aside>
+
+    <!-- 가운데 -->
+    <main class="center">
+      <!-- 배너 -->
+      <div class="banner" id="banner">
+        <div class="slide active" style="background:linear-gradient(120deg,#4f6bff,#9b6bff)">
+          <span class="big-emoji">🎮</span>
+          <span class="tag">✦ 공지</span>
+          <h2>후니의 연구소에<br />오신 걸 환영합니다! 👋</h2>
+          <p>게임 · 야구 · 여행을 사랑하는 후니의 공간 ✨</p>
+        </div>
+        <div class="slide" style="background:linear-gradient(120deg,#18a96b,#5fd38d)">
+          <span class="big-emoji">⚾</span>
+          <span class="tag">🔥 이벤트</span>
+          <h2>이번 주말 직관 이벤트!<br />같이 응원할 사람 모집 📣</h2>
+          <p>홈런 나오면 다 같이 소리 질러~ 🏟️</p>
+        </div>
+        <div class="slide" style="background:linear-gradient(120deg,#ff8a5b,#ffbd59)">
+          <span class="big-emoji">✈️</span>
+          <span class="tag">🗺️ 신규</span>
+          <h2>다음 여행지 투표 진행 중!<br />어디로 떠나볼까? 🧳</h2>
+          <p>바다? 산? 야구장 투어? 🌏</p>
+        </div>
+        <div class="dots" id="dots"></div>
+      </div>
+
+      <!-- 취미 카드 -->
+      <section class="card">
+        <div class="section-title">💖 후니의 취미 <small>카드를 눌러 좋아요!</small></div>
+        <div class="hobbies">
+          <div class="hobby" data-filter="game">
+            <div class="cover" style="background:linear-gradient(135deg,#efe4ff,#d7c2ff)">🎮</div>
+            <div class="info">
+              <h3>게임</h3>
+              <p>새 게임은 못 참지! 밤샘은 기본 🌙</p>
+              <div class="meta"><span>🕹️ 플레이 중</span><button class="like">♡ <span>128</span></button></div>
+            </div>
+          </div>
+          <div class="hobby" data-filter="baseball">
+            <div class="cover" style="background:linear-gradient(135deg,#dcf7e6,#a9e9c3)">⚾</div>
+            <div class="info">
+              <h3>야구</h3>
+              <p>직관 가서 응원가 부르기 📣</p>
+              <div class="meta"><span>🏟️ 시즌 진행 중</span><button class="like">♡ <span>96</span></button></div>
+            </div>
+          </div>
+          <div class="hobby" data-filter="travel">
+            <div class="cover" style="background:linear-gradient(135deg,#dfeeff,#b0d2ff)">✈️</div>
+            <div class="info">
+              <h3>여행</h3>
+              <p>낯선 곳에서 맛집 찾기 🍜</p>
+              <div class="meta"><span>🧳 계획 중</span><button class="like">♡ <span>74</span></button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 피드 -->
+      <section class="card">
+        <div class="feed-tabs" id="feedTabs">
+          <button class="active" data-filter="all">추천</button>
+          <button data-filter="game">게임</button>
+          <button data-filter="baseball">야구</button>
+          <button data-filter="travel">여행</button>
+        </div>
+        <div id="feed">
+          <article class="post" data-cat="baseball">
+            <div>
+              <div class="author"><span class="avatar-sm">😎</span><b>후니</b><span class="lv">Lv.12</span><time>2시간 전</time></div>
+              <h4><span class="chip" style="background:#e3f7e8;color:#18a96b">야구</span>9회말 역전 홈런 직관 후기 ⚾🎉</h4>
+              <p class="desc">목이 다 쉬었다 ㅋㅋ 오늘 경기는 평생 못 잊을 듯! 응원가 떼창 최고 📣</p>
+              <div class="stats"><span>👁 1.2k</span><button class="post-like">♡ <span>87</span></button><span>💬 23</span></div>
+            </div>
+            <div class="thumb" style="background:linear-gradient(135deg,#dcf7e6,#a9e9c3)">🏟️</div>
+          </article>
+          <article class="post" data-cat="game">
+            <div>
+              <div class="author"><span class="avatar-sm">😎</span><b>후니</b><span class="lv">Lv.12</span><time>어제</time></div>
+              <h4><span class="chip" style="background:#f3e8ff;color:#8a4dff">게임</span>드디어 엔딩 봤다!! 🎮✨</h4>
+              <p class="desc">비 오는 날 라면 끓여놓고 엔딩까지 달렸다. 마지막 보스 진짜 어려웠음 😭</p>
+              <div class="stats"><span>👁 980</span><button class="post-like">♡ <span>64</span></button><span>💬 17</span></div>
+            </div>
+            <div class="thumb" style="background:linear-gradient(135deg,#efe4ff,#d7c2ff)">🏆</div>
+          </article>
+          <article class="post" data-cat="travel">
+            <div>
+              <div class="author"><span class="avatar-sm">😎</span><b>후니</b><span class="lv">Lv.12</span><time>3일 전</time></div>
+              <h4><span class="chip" style="background:#e3f0ff;color:#3d7bfd">여행</span>바다 보고 왔어요 🌊🏝️</h4>
+              <p class="desc">파도 소리 들으면서 멍때리기 성공. 현지 맛집 리스트도 정리해 뒀어요 🍜</p>
+              <div class="stats"><span>👁 756</span><button class="post-like">♡ <span>52</span></button><span>💬 9</span></div>
+            </div>
+            <div class="thumb" style="background:linear-gradient(135deg,#dfeeff,#b0d2ff)">🏝️</div>
+          </article>
+          <article class="post" data-cat="game">
+            <div>
+              <div class="author"><span class="avatar-sm">😎</span><b>후니</b><span class="lv">Lv.12</span><time>5일 전</time></div>
+              <h4><span class="chip" style="background:#f3e8ff;color:#8a4dff">게임</span>오늘 밤 같이 파티 할 사람? 🙋</h4>
+              <p class="desc">레이드 같이 돌 사람 구해요! 초보도 환영 😆</p>
+              <div class="stats"><span>👁 512</span><button class="post-like">♡ <span>31</span></button><span>💬 12</span></div>
+            </div>
+            <div class="thumb" style="background:linear-gradient(135deg,#ffe4ef,#ffc2da)">⚔️</div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <!-- 오른쪽 -->
+    <aside class="right">
+      <section class="card profile">
+        <div class="bg"></div>
+        <div class="avatar-lg" id="avatar" title="눌러보세요!">😎</div>
+        <h3>후니<span class="lv">Lv.12</span></h3>
+        <p class="bio">🎮 게임 · ⚾ 야구 · ✈️ 여행 덕후</p>
+        <div class="nums">
+          <div><b>4</b><span>게시글</span></div>
+          <div><b id="followers">256</b><span>팔로워</span></div>
+          <div><b>38</b><span>팔로잉</span></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" id="followBtn">+ 팔로우</button>
+          <button class="btn ghost" id="helloBtn">👋 인사하기</button>
+        </div>
+        <div class="exp">
+          EXP <span id="expText">640 / 1000</span>
+          <div class="bar"><i id="expBar"></i></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-title"># 인기 태그</div>
+        <div class="tags">
+          <span>#직관러</span><span>#엔딩봄</span><span>#여행스타그램</span>
+          <span>#홈런</span><span>#맛집탐방</span><span>#밤샘게임</span>
+        </div>
+      </section>
+
+      <footer>© HOONI LAB ✦ Made with 💙 by 후니</footer>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const rand = (min, max) => Math.random() * (max - min) + min;
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    // 토스트 알림
+    const toast = document.getElementById('toast');
+    let toastTimer;
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    // 반짝 파티클
+    function sparkle(x, y, count = 8, set = ['✨', '⭐', '💙', '💖']) {
+      for (let i = 0; i < count; i++) {
+        const s = document.createElement('div');
+        s.className = 'spark';
+        s.textContent = pick(set);
+        s.style.left = x + 'px';
+        s.style.top = y + 'px';
+        const a = rand(0, Math.PI * 2), d = rand(40, 100);
+        s.style.setProperty('--dx', Math.cos(a) * d + 'px');
+        s.style.setProperty('--dy', Math.sin(a) * d + 'px');
+        document.body.appendChild(s);
+        setTimeout(() => s.remove(), 900);
+      }
+    }
+
+    // 배너 슬라이드
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.getElementById('dots');
+    let current = 0;
+    slides.forEach((_, i) => {
+      const b = document.createElement('button');
+      b.setAttribute('aria-label', `${i + 1}번 배너`);
+      b.addEventListener('click', () => { goTo(i); restart(); });
+      dots.appendChild(b);
+    });
+    function goTo(i) {
+      current = i;
+      slides.forEach((s, j) => s.classList.toggle('active', j === i));
+      dots.querySelectorAll('button').forEach((d, j) => d.classList.toggle('active', j === i));
+    }
+    let slideTimer;
+    function restart() {
+      clearInterval(slideTimer);
+      slideTimer = setInterval(() => goTo((current + 1) % slides.length), 4000);
+    }
+    goTo(0);
+    restart();
+
+    // 카테고리 필터 (사이드바 + 피드 탭 + 취미 카드)
+    const sideBtns = document.querySelectorAll('.side button[data-filter]');
+    const feedBtns = document.querySelectorAll('#feedTabs button');
+    function filterFeed(cat) {
+      document.querySelectorAll('.post').forEach(p => {
+        p.style.display = cat === 'all' || p.dataset.cat === cat ? '' : 'none';
+      });
+      sideBtns.forEach(b => b.classList.toggle('active', b.dataset.filter === cat));
+      feedBtns.forEach(b => b.classList.toggle('active', b.dataset.filter === cat));
+    }
+    sideBtns.forEach(b => b.addEventListener('click', () => filterFeed(b.dataset.filter)));
+    feedBtns.forEach(b => b.addEventListener('click', () => filterFeed(b.dataset.filter)));
+
+    // 좋아요 토글
+    function toggleLike(btn) {
+      const n = btn.querySelector('span');
+      const on = btn.classList.toggle('on');
+      n.textContent = Number(n.textContent) + (on ? 1 : -1);
+      btn.firstChild.textContent = on ? '♥ ' : '♡ ';
+      return on;
+    }
+
+    document.querySelectorAll('.hobby').forEach(card => {
+      card.addEventListener('click', e => {
+        if (toggleLike(card.querySelector('.like'))) sparkle(e.clientX, e.clientY, 8, ['💖', '✨', card.querySelector('.cover').textContent]);
+        filterFeed(card.dataset.filter);
+      });
+    });
+
+    document.querySelectorAll('.post-like').forEach(btn => {
+      btn.addEventListener('click', e => {
+        if (toggleLike(btn)) sparkle(e.clientX, e.clientY, 6, ['💖', '♥']);
+      });
+    });
+
+    // 인사하기
+    const hello = () => alert('반가워요!');
+    document.getElementById('helloBtn').addEventListener('click', hello);
+    document.getElementById('helloSide').addEventListener('click', hello);
+
+    // 팔로우
+    const followBtn = document.getElementById('followBtn');
+    const followers = document.getElementById('followers');
+    followBtn.addEventListener('click', e => {
+      const on = followBtn.classList.toggle('followed');
+      followBtn.classList.toggle('primary', !on);
+      followBtn.textContent = on ? '✔ 팔로잉' : '+ 팔로우';
+      followers.textContent = Number(followers.textContent) + (on ? 1 : -1);
+      if (on) { sparkle(e.clientX, e.clientY, 10); showToast('후니를 팔로우했어요! 💙'); }
+    });
+
+    // 아바타 클릭 → 표정 변경
+    const faces = ['😎', '😆', '🤩', '😋', '🥳', '😴', '🤓'];
+    const avatar = document.getElementById('avatar');
+    avatar.addEventListener('click', e => {
+      avatar.textContent = pick(faces.filter(f => f !== avatar.textContent));
+      document.querySelectorAll('.avatar-sm').forEach(a => a.textContent = avatar.textContent);
+      sparkle(e.clientX, e.clientY, 6);
+    });
+  </script>
+</body>
+</html>

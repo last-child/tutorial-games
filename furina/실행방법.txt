@@ -1,0 +1,42 @@
+푸리나 웹 미연시 — 실행 방법
+==============================
+
+[1] 개발 서버로 실행 (대본 수정 내용이 바로 반영됨)
+
+  PowerShell에서:
+    cd C:\Users\licht\hooni-game\furina
+    npm run dev
+
+  브라우저에서 열기: http://localhost:5173/
+  끄기: 터미널에서 Ctrl + C
+
+
+[2] 빌드한 버전으로 실행
+
+  PowerShell에서:
+    cd C:\Users\licht\hooni-game\furina
+    npm run build
+    npm run preview
+
+  브라우저에서 열기: http://localhost:4173/
+  ※ 대본을 고치지 않았다면 npm run build 는 생략해도 됨.
+  ※ dist\index.html 을 더블클릭해서 열면 스크립트·오디오가 막힐 수 있으니 이 방법을 쓸 것.
+
+
+[3] Claude Code로 작업 이어가기
+
+  이 폴더에서:
+    claude --continue   (마지막 대화 이어서)
+    claude --resume     (이전 대화 목록에서 골라서)
+
+
+[진행]
+
+  선택지 2개(케이크 고르기·입가의 크림)는 분위기용 — 점수·엔딩 분기 없음.
+  크림 장면이 끝나면 '이후 이야기는 아직 미완성입니다.' 화면 → 클릭하면 처음부터.
+
+
+[파일 안내]
+
+  furina_script_v2.md  : 대본 원본 (스토리의 기준)
+  src\scenario.ts      : 게임에 들어가는 대사 데이터 (대본과 동기화됨)
