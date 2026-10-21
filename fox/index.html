@@ -66,6 +66,16 @@
     will-change: transform;
   }
   #hero.is-jump { background-image: url("img/fox-jump.webp"); }
+
+  /* 길 위 코인: 자리는 바깥 칸이 잡고, 안쪽 동전이 빙글 돈다(옆으로 납작해졌다 돌아온다) */
+  .coin { position: absolute; left: 0; top: 0; will-change: transform; }
+  .coin svg { display: block; width: 100%; height: 100%; animation: coin-spin .9s ease-in-out infinite; }
+  @keyframes coin-spin { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(.22); } }
+  /* 먹은 코인은 위로 톡 튀며 사라진다 */
+  .coin-pop { position: absolute; pointer-events: none; animation: coin-pop .42s cubic-bezier(.2, .7, .3, 1) forwards; }
+  .coin-pop svg { display: block; width: 100%; height: 100%; }
+  @keyframes coin-pop { to { transform: translateY(-1.6em) scale(1.25); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .coin svg { animation: none; } }
   /* 부딪힌 뒤 다치지 않는 동안 깜빡인다 */
   #hero.is-hurt { animation: hurt-blink .16s steps(2, jump-none) infinite; }
   @keyframes hurt-blink { from { opacity: 1; } to { opacity: .3; } }
@@ -102,6 +112,10 @@
     font-variant-numeric: tabular-nums;
   }
   .coins b small { font-size: .7em; margin-right: .1em; }
+  /* 코인을 먹으면 개수가 살짝 커졌다 돌아온다 */
+  .coins b { display: inline-block; transform-origin: 20% 60%; }
+  .coins b.is-bump { animation: coin-bump .22s ease-out; }
+  @keyframes coin-bump { 40% { transform: scale(1.22); } }
 
   .score {
     position: absolute; left: 50%; top: 3em;
@@ -234,6 +248,7 @@
 <main id="stage" aria-label="팍스런">
   <div class="layer" id="far"><div></div></div>
   <div class="layer" id="ground"><div></div></div>
+  <div id="coins" aria-hidden="true"></div>
   <div id="darumas" aria-hidden="true"></div>
   <div id="shadow" aria-hidden="true"></div>
   <div id="hero" role="img" aria-label="흰 여우"></div>
@@ -252,21 +267,8 @@
   <div class="hud-left">
     <div class="hearts" id="hearts" role="img" aria-label="목숨 4개"></div>
     <div class="coins">
-      <svg viewBox="0 0 48 48" aria-hidden="true">
-        <defs>
-          <radialGradient id="coin-face" cx=".38" cy=".32" r=".75">
-            <stop offset="0" stop-color="#fff2a8"/>
-            <stop offset=".55" stop-color="#f6c443"/>
-            <stop offset="1" stop-color="#d9921c"/>
-          </radialGradient>
-        </defs>
-        <circle cx="24" cy="25.5" r="20" fill="#8a5410"/>
-        <circle cx="24" cy="23" r="20" fill="url(#coin-face)" stroke="#6b3f0c" stroke-width="2.4"/>
-        <circle cx="24" cy="23" r="14.5" fill="none" stroke="#c98418" stroke-width="2"/>
-        <path d="M24 12.2l3.1 6.6 7.2.8-5.4 4.9 1.5 7.1L24 28l-6.4 3.6 1.5-7.1-5.4-4.9 7.2-.8z" fill="#fff6c9" stroke="#b5700f" stroke-width="1.6" stroke-linejoin="round"/>
-        <path d="M12 15a14 14 0 0 1 8-6" fill="none" stroke="#fffbe6" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
-      </svg>
-      <b><small>×</small><span id="coin-count">0</span></b>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><use href="#coin"/></svg>
+      <b id="coin-total"><small>×</small><span id="coin-count">0</span></b>
     </div>
   </div>
 
@@ -291,6 +293,21 @@
 </div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- 별이 박힌 금빛 동전. HUD와 길 위 코인이 같이 쓴다 -->
+  <symbol id="coin" viewBox="0 0 48 48">
+    <defs>
+      <radialGradient id="coin-face" cx=".38" cy=".32" r=".75">
+        <stop offset="0" stop-color="#fff2a8"/>
+        <stop offset=".55" stop-color="#f6c443"/>
+        <stop offset="1" stop-color="#d9921c"/>
+      </radialGradient>
+    </defs>
+    <circle cx="24" cy="25.5" r="20" fill="#8a5410"/>
+    <circle cx="24" cy="23" r="20" fill="url(#coin-face)" stroke="#6b3f0c" stroke-width="2.4"/>
+    <circle cx="24" cy="23" r="14.5" fill="none" stroke="#c98418" stroke-width="2"/>
+    <path d="M24 12.2l3.1 6.6 7.2.8-5.4 4.9 1.5 7.1L24 28l-6.4 3.6 1.5-7.1-5.4-4.9 7.2-.8z" fill="#fff6c9" stroke="#b5700f" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M12 15a14 14 0 0 1 8-6" fill="none" stroke="#fffbe6" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
+  </symbol>
   <symbol id="heart" viewBox="0 0 48 44">
     <path class="fill" d="M24 40.5C11 31.5 4 24.3 4 15.6 4 9.3 8.8 4.5 14.8 4.5c4 0 7.2 2.1 9.2 5.4 2-3.3 5.2-5.4 9.2-5.4C39.2 4.5 44 9.3 44 15.6c0 8.7-7 15.9-20 24.9Z"
       fill="var(--heart-fill, #e8434f)" stroke="#2a1640" stroke-width="3" stroke-linejoin="round"/>
@@ -445,11 +462,52 @@ var Fox = (function () {
 
   function nextGap(r) { return GAP.min + r() * (GAP.max - GAP.min); }
 
+  // 코인(쿠키런처럼 줄지어 나온다, 2026-10-21 사용자 요청). 길이는 모두 틀 높이를 1로 잰다.
+  // size는 지름, gap은 줄 안 간격, y는 동전 가운데가 땅에서 얼마나 높은지.
+  // 달릴 때 여우 몸통 가운데 높이(low)에 깔린 줄은 달리기만 해도 먹고, 높은 줄(high)은 뛰어야 먹는다.
+  // 다루마 위에는 여우가 다루마를 넘는 점프 궤적 그대로 무지개 줄(arc)을 놓는다. 알맞게 뛰면 줄줄이 먹는다.
+  var COIN = { size: 0.058, gap: 0.085, low: 0.067, high: 0.36, arc: 7, arcHalf: 0.25, edge: 0.33, highChance: 0.28, emptyChance: 0.12 };
+  var BODY_MID = HERO_BOX.up * HERO.size / HERO.cell / 2; // 여우 몸통 판정 네모의 가운데 높이
+
+  // 점프하고 t초 뒤 높이(웅크리는 시간은 뺀다)
+  function liftAt(t) { return Math.max(0, JUMP_SPEED * t - GRAVITY * t * t / 2); }
+
+  // 다루마 위 무지개 줄: 여우 몸통 가운데가 다루마 가운데를 지날 때 점프 꼭대기가 되게 맞춘 궤적
+  function arcCoins(cx) {
+    var out = [];
+    for (var i = 0; i < COIN.arc; i++) {
+      var dx = -COIN.arcHalf + i * (2 * COIN.arcHalf / (COIN.arc - 1));
+      out.push({ x: cx + dx, y: liftAt(JUMP.rise + dx / SCROLL.run) + BODY_MID });
+    }
+    return out;
+  }
+  // from~to 사이 한 줄. 너무 짧으면 비운다
+  function lineCoins(from, to, y) {
+    var out = [], n = Math.floor((to - from) / COIN.gap) + 1;
+    if (to - from < COIN.gap) return out;
+    var start = from + ((to - from) - (n - 1) * COIN.gap) / 2;
+    for (var i = 0; i < n; i++) out.push({ x: start + i * COIN.gap, y: y });
+    return out;
+  }
+  // 다루마와 다음 다루마 사이를 채운다: 대개 낮은 줄, 가끔 높은 줄, 가끔 비움
+  function fillCoins(r, from, to) {
+    var k = r();
+    if (k < COIN.emptyChance) return [];
+    if (k < COIN.emptyChance + COIN.highChance && to - from > 0.4) return lineCoins(from, to, COIN.high);
+    return lineCoins(from, to, COIN.low);
+  }
+  function coinTouching(box, c) {
+    var r = COIN.size * 0.45;
+    var nx = Math.max(box.x0, Math.min(c.x, box.x1)), ny = Math.max(box.y0, Math.min(c.y, box.y1));
+    return (c.x - nx) * (c.x - nx) + (c.y - ny) * (c.y - ny) < r * r;
+  }
+
   // dist는 배경이 흐른 거리라 다시 해도 이어지고, time은 이번 판에 달린 시간, points는 이번 판 점수다.
   // hits는 이번 프레임에 부딪힌 일(화면 연출용), safe는 깜빡이는 남은 초.
   function world(seed) {
     return { started: false, paused: false, over: false, dist: 0, time: 0, points: 0, lives: LIVES, coins: 0, hero: hero(),
-      darumas: [], spawnIn: DARUMA.first, safe: 0, hits: [], r: rng(seed || 1) };
+      darumas: [], spawnIn: DARUMA.first, safe: 0, hits: [], r: rng(seed || 1),
+      gold: [], goldReady: false, picked: [] };
   }
 
   function score(wd) { return Math.floor(wd.points); }
@@ -477,6 +535,9 @@ var Fox = (function () {
     wd.spawnIn = DARUMA.first;
     wd.safe = 0;
     wd.hits = [];
+    wd.gold = [];
+    wd.goldReady = false;
+    wd.picked = [];
     return wd;
   }
 
@@ -496,17 +557,41 @@ var Fox = (function () {
     if (wd.safe > 0) wd.safe = Math.max(0, wd.safe - dt);
 
     var half = DARUMA.size / 2, kept = [];
+    // 첫 다루마가 오기 전 길에도 낮은 줄을 깔아 둔다
+    if (!wd.goldReady) {
+      wd.goldReady = true;
+      var startX = heroBox(wd, viewW).x1 + 0.3, firstX = viewW + half + wd.spawnIn * SCROLL.run;
+      wd.gold = wd.gold.concat(lineCoins(startX, firstX - COIN.edge, COIN.low));
+    }
     for (var i = 0; i < wd.darumas.length; i++) {
       var d = wd.darumas[i];
       d.x -= move;
       if (d.x > -half) kept.push(d);
     }
     wd.darumas = kept;
+    var goldKept = [];
+    for (var g = 0; g < wd.gold.length; g++) {
+      wd.gold[g].x -= move;
+      if (wd.gold[g].x > -COIN.size) goldKept.push(wd.gold[g]);
+    }
+    wd.gold = goldKept;
     wd.spawnIn -= dt;
     if (wd.spawnIn <= 0) {
-      wd.darumas.push({ x: viewW + half, phase: wd.r() });
+      var dx0 = viewW + half;
+      wd.darumas.push({ x: dx0, phase: wd.r() });
       wd.spawnIn = nextGap(wd.r);
+      // 이 다루마 위 무지개 줄, 그리고 다음 다루마가 올 자리까지 채우는 줄
+      var nextX = dx0 + wd.spawnIn * SCROLL.run;
+      wd.gold = wd.gold.concat(arcCoins(dx0), fillCoins(wd.r, dx0 + COIN.edge, nextX - COIN.edge));
     }
+
+    // 코인 줍기
+    var hbox = heroBox(wd, viewW), left = [];
+    for (var c = 0; c < wd.gold.length; c++) {
+      if (coinTouching(hbox, wd.gold[c])) { wd.coins += 1; wd.picked.push(wd.gold[c]); }
+      else left.push(wd.gold[c]);
+    }
+    wd.gold = left;
 
     if (wd.safe <= 0) {
       var hb = heroBox(wd, viewW);
@@ -530,7 +615,7 @@ var Fox = (function () {
 
   return { clamp: clamp, ASPECT: ASPECT, frame: frame, ART: ART, HERO: HERO, layout: layout, JUMP: JUMP, JUMP_ART: JUMP_ART, POSE: POSE, pose: pose, hero: hero, jump: jump, step: step,
     SCROLL: SCROLL, scrollOffset: scrollOffset, LIVES: LIVES, rng: rng, DARUMA: DARUMA, GAP: GAP, HURT_SAFE: HURT_SAFE, HERO_BOX: HERO_BOX,
-    heroBox: heroBox, darumaBox: darumaBox, touching: touching, world: world, score: score, playing: playing, toggle: toggle, restart: restart,
+    heroBox: heroBox, darumaBox: darumaBox, touching: touching, COIN: COIN, liftAt: liftAt, arcCoins: arcCoins, lineCoins: lineCoins, coinTouching: coinTouching, world: world, score: score, playing: playing, toggle: toggle, restart: restart,
     tryJump: tryJump, update: update, darumaFrame: darumaFrame };
 })();
 if (typeof module !== 'undefined') module.exports = Fox;
@@ -546,7 +631,8 @@ if (typeof module !== 'undefined') module.exports = Fox;
   var startBtn = document.getElementById('start');
   var game = Fox.world((Math.random() * 4294967296) >>> 0);
   var L;
-  var darumaLayer = document.getElementById('darumas');
+  var darumaLayer = document.getElementById('darumas'), coinLayer = document.getElementById('coins');
+  var coinTotal = document.getElementById('coin-total');
   var overEl = document.getElementById('over'), overScore = document.getElementById('over-score'), retryBtn = document.getElementById('retry');
 
   // 점프 그림과 다루마 그림은 처음 쓰일 때 깜빡 비어 보이지 않게 미리 불러 풀어 둔다
@@ -586,6 +672,7 @@ if (typeof module !== 'undefined') module.exports = Fox;
     drawScene();
     placeHero();
     placeDarumas();
+    placeCoins();
   }
 
   // 다루마: 화면에 있는 만큼 칸을 꺼내 쓰고, 남는 칸은 숨긴다
@@ -608,6 +695,49 @@ if (typeof module !== 'undefined') module.exports = Fox;
       var x = d.x * L.h - D.cx * k, y = L.groundY - D.feet * k;
       slot.el.style.transform = 'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0)';
     }
+  }
+
+  // 길 위 코인: 화면에 있는 만큼 칸을 꺼내 쓰고, 남는 칸은 숨긴다.
+  // 칸마다 도는 박자를 조금씩 어긋나게 해서 줄이 물결치듯 돈다.
+  var coinPool = [];
+  function placeCoins() {
+    var cs = game.gold, d = Fox.COIN.size * L.h;
+    while (coinPool.length < cs.length) {
+      var el = document.createElement('div');
+      el.className = 'coin';
+      el.innerHTML = '<svg viewBox="0 0 48 48"><use href="#coin"/></svg>';
+      el.firstChild.style.animationDelay = (-(coinPool.length % 9) * 0.1) + 's';
+      coinLayer.appendChild(el);
+      coinPool.push({ el: el, size: 0 });
+    }
+    for (var i = 0; i < coinPool.length; i++) {
+      var slot = coinPool[i];
+      if (i >= cs.length) { slot.el.style.display = 'none'; continue; }
+      var c = cs[i];
+      slot.el.style.display = '';
+      if (slot.size !== d) { slot.size = d; slot.el.style.width = slot.el.style.height = d.toFixed(2) + 'px'; }
+      var x = c.x * L.h - d / 2, y = L.groundY - c.y * L.h - d / 2;
+      slot.el.style.transform = 'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0)';
+    }
+  }
+  // 먹은 코인: 그 자리에서 위로 톡 튀며 사라지고, HUD 개수가 살짝 커진다
+  function popCoins() {
+    if (!game.picked.length) return;
+    var d = Fox.COIN.size * L.h;
+    while (game.picked.length) {
+      var c = game.picked.shift(), el = document.createElement('div');
+      el.className = 'coin-pop';
+      el.innerHTML = '<svg viewBox="0 0 48 48"><use href="#coin"/></svg>';
+      el.style.width = el.style.height = d.toFixed(2) + 'px';
+      el.style.left = (c.x * L.h - d / 2).toFixed(2) + 'px';
+      el.style.top = (L.groundY - c.y * L.h - d / 2).toFixed(2) + 'px';
+      el.addEventListener('animationend', function () { this.remove(); });
+      coinLayer.appendChild(el);
+      Music.coin();
+    }
+    coinTotal.classList.remove('is-bump');
+    void coinTotal.offsetWidth;
+    coinTotal.classList.add('is-bump');
   }
 
   function drawScene() {
@@ -703,6 +833,7 @@ if (typeof module !== 'undefined') module.exports = Fox;
 
     var ctx = null, master = null, bus = null, sfx = null, drone = null, timer = 0, on = false, bar = 0, nextAt = 0, tempo = 1;
     var noiseBuf = null, strings = {};
+    var COIN_NOTES = [81, 82, 86, 88, 89, 93, 94, 98, 100, 101], coinStep = 0, lastCoin = -1;
     var muted = false;
     try { muted = localStorage.getItem(KEY) === 'off'; } catch (e) {}
 
@@ -1020,6 +1151,17 @@ if (typeof module !== 'undefined') module.exports = Fox;
         clearInterval(timer);
         fadeTo(0, 0.5);
       },
+      // 코인: 맑은 띵. 연달아 먹으면 미야코부시 음계를 따라 한 칸씩 올라간다(0.45초 안에 다음 코인을 먹으면 이어짐)
+      coin: function () {
+        if (!ctx) return;
+        var t = ctx.currentTime + 0.003;
+        coinStep = t - lastCoin < 0.45 ? Math.min(coinStep + 1, COIN_NOTES.length - 1) : 0;
+        lastCoin = t;
+        var f = hz(COIN_NOTES[coinStep]);
+        tone(t, f, f, 0.16, 0.13, 'sine');
+        tone(t, f * 2, f * 2, 0.08, 0.04, 'sine');
+        tone(t + 0.035, f * 1.5, f * 1.5, 0.12, 0.05, 'triangle');
+      },
       // 점프: 휙 하는 바람에 목에 단 방울이 딸랑. 자주 나니까 작고 짧게
       jump: function () {
         if (!ctx) return;
@@ -1164,6 +1306,7 @@ if (typeof module !== 'undefined') module.exports = Fox;
   }
   function retry() {
     Fox.restart(game);
+    coinLayer.querySelectorAll('.coin-pop').forEach(function (el) { el.remove(); });
     overShown = false;
     overEl.hidden = true;
     startBtn.hidden = false;
@@ -1185,6 +1328,8 @@ if (typeof module !== 'undefined') module.exports = Fox;
     if (game.dist !== before) drawScene();
     placeHero();
     placeDarumas();
+    placeCoins();
+    popCoins();
     showScore();
     requestAnimationFrame(tick);
   }
