@@ -55,6 +55,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 받은 그림 압축 파일(`fox/img/*.zip`)은 안의 그림을 풀어 두었으므로 올리지 않는다(사용자 결정). impeccable 임시 파일과 `node_modules/`, `dist/`도 `.gitignore`로 뺀다. 푸리나 비주얼노벨도 함께 올린다.
 - 커밋과 푸시는 사용자가 하라고 할 때만 한다.
 
+## 파이어베이스 호스팅
+
+- 2026-10-21 사용자가 파이어베이스 프로젝트 `hooni-tutorial-games`를 만들어 이 폴더와 연동했다(`.firebaserc`, `firebase.json`). 주소는 `https://hooni-tutorial-games.web.app`이다. GitHub Pages와 같은 사이트를 따로 하나 더 올리는 것이다.
+- 저장소 맨 위를 그대로 올린다(`public: "."`). 문서(`*.md`), 숨김 파일, `furina/`(빌드가 필요한 별도 프로젝트), 여우 원본 그림(`fox/img/*.zip`, `fox/img/**/*.png`)은 올리지 않는다.
+- 배포는 `firebase deploy --only hosting`. 깃 푸시처럼 사용자가 하라고 할 때만 한다.
+
 ## 새 게임을 만들 때
 
 - 폴더는 저장소 맨 위의 `<게임>/`이고, `index.html` 한 장에 그림은 `img/`에 둔다. 게임 폴더에 그 게임 전용 `CLAUDE.md`를 만든다.

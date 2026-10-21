@@ -11,3 +11,6 @@ dist/
 .impeccable/review/
 .impeccable/build/
 .impeccable/config.local.json
+
+# 파이어베이스 배포 캐시
+.firebase/
