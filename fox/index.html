@@ -466,13 +466,17 @@ var Fox = (function () {
   // size는 지름, gap은 줄 안 간격, y는 동전 가운데가 땅에서 얼마나 높은지.
   // 달릴 때 여우 몸통 가운데 높이(low)에 깔린 줄은 달리기만 해도 먹고, 높은 줄(high)은 뛰어야 먹는다.
   // 다루마 위에는 여우가 다루마를 넘는 점프 궤적 그대로 무지개 줄(arc)을 놓는다. 알맞게 뛰면 줄줄이 먹는다.
-  var COIN = { size: 0.058, gap: 0.085, low: 0.067, high: 0.36, arc: 7, arcHalf: 0.25, edge: 0.33, highChance: 0.28, emptyChance: 0.12 };
+  // 2026-10-21 사용자 지적("너무 코인이 많아")으로 줄 간격을 넓히고 낮은 줄은 최대 4개(maxRun)로 줄였다.
+  // 반원(무지개 줄)은 줄이지 않는다("반원에서 코인은 줄이면 안 되지"): 늘 9개(사용자 지정)이고, 다루마가 없는 곳에도 나온다.
+  // 다루마 위 반원은 다루마의 arcChance만큼. 다루마 사이는 비움 / 반원 / 낮은 줄 / 높은 줄 중 하나(pick 비율).
+  var COIN = { size: 0.058, gap: 0.12, low: 0.067, high: 0.36, arc: 9, arcHalf: 0.25, arcChance: 0.6, edge: 0.33, maxRun: 4,
+    pick: { empty: 0.25, arc: 0.3, low: 0.3, high: 0.15 } };
   var BODY_MID = HERO_BOX.up * HERO.size / HERO.cell / 2; // 여우 몸통 판정 네모의 가운데 높이
 
   // 점프하고 t초 뒤 높이(웅크리는 시간은 뺀다)
   function liftAt(t) { return Math.max(0, JUMP_SPEED * t - GRAVITY * t * t / 2); }
 
-  // 다루마 위 무지개 줄: 여우 몸통 가운데가 다루마 가운데를 지날 때 점프 꼭대기가 되게 맞춘 궤적
+  // 반원(무지개 줄): 여우 몸통 가운데가 cx를 지날 때 점프 꼭대기가 되게 맞춘 궤적. 다루마 위면 cx가 다루마 가운데
   function arcCoins(cx) {
     var out = [];
     for (var i = 0; i < COIN.arc; i++) {
@@ -481,20 +485,23 @@ var Fox = (function () {
     }
     return out;
   }
-  // from~to 사이 한 줄. 너무 짧으면 비운다
+  // from~to 사이 가운데에 한 줄(많아야 maxRun개). 너무 짧으면 비운다
   function lineCoins(from, to, y) {
-    var out = [], n = Math.floor((to - from) / COIN.gap) + 1;
+    var out = [], n = Math.min(COIN.maxRun, Math.floor((to - from) / COIN.gap) + 1);
     if (to - from < COIN.gap) return out;
     var start = from + ((to - from) - (n - 1) * COIN.gap) / 2;
     for (var i = 0; i < n; i++) out.push({ x: start + i * COIN.gap, y: y });
     return out;
   }
-  // 다루마와 다음 다루마 사이를 채운다: 대개 낮은 줄, 가끔 높은 줄, 가끔 비움
+  // 다루마와 다음 다루마 사이를 채운다: 비움, 다루마 없는 반원(뛰어서 먹음), 낮은 줄(달리며 먹음), 높은 줄(뛰어서 먹음)
   function fillCoins(r, from, to) {
-    var k = r();
-    if (k < COIN.emptyChance) return [];
-    if (k < COIN.emptyChance + COIN.highChance && to - from > 0.4) return lineCoins(from, to, COIN.high);
-    return lineCoins(from, to, COIN.low);
+    var P = COIN.pick, k = r(), len = to - from;
+    if (k < P.empty) return [];
+    k -= P.empty;
+    if (k < P.arc) return len >= 2 * COIN.arcHalf ? arcCoins((from + to) / 2) : lineCoins(from, to, COIN.low);
+    k -= P.arc;
+    if (k < P.low) return lineCoins(from, to, COIN.low);
+    return len > 0.4 ? lineCoins(from, to, COIN.high) : lineCoins(from, to, COIN.low);
   }
   function coinTouching(box, c) {
     var r = COIN.size * 0.45;
@@ -582,7 +589,7 @@ var Fox = (function () {
       wd.spawnIn = nextGap(wd.r);
       // 이 다루마 위 무지개 줄, 그리고 다음 다루마가 올 자리까지 채우는 줄
       var nextX = dx0 + wd.spawnIn * SCROLL.run;
-      wd.gold = wd.gold.concat(arcCoins(dx0), fillCoins(wd.r, dx0 + COIN.edge, nextX - COIN.edge));
+      wd.gold = wd.gold.concat(wd.r() < COIN.arcChance ? arcCoins(dx0) : [], fillCoins(wd.r, dx0 + COIN.edge, nextX - COIN.edge));
     }
 
     // 코인 줍기
