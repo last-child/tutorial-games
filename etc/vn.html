@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" href="data:," />
+<title>비주얼노벨</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&family=Noto+Serif+KR:wght@400;700&display=swap" />
+<style>
+:root {
+  --ink: #eef2ff;
+  --ink-soft: #c9d3f2;
+  --gold: #d9b871;
+  --gold-soft: rgba(217, 184, 113, 0.45);
+  --azure: #7fb4ff;
+  --panel: rgba(9, 14, 36, 0.8);
+  --font-sans: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --font-serif: 'Noto Serif KR', 'Nanum Myeongjo', 'Batang', serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #04060f;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── 16:9 프레임 ─────────────────────────────── */
+#frame {
+  position: relative;
+  width: min(100vw, calc(100dvh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  container-type: inline-size;
+  cursor: pointer;
+  --fs: clamp(14px, 2cqw, 36px);
+}
+
+#scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #070a1a;
+}
+
+/* ── 배경: 그림 대신 CSS로 그린 방 (창 + 바닥) ── */
+.bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+.bg.on { opacity: 1; }
+.bg::before {
+  /* 창 */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 9%;
+  width: 34%;
+  height: 52%;
+  transform: translateX(-50%);
+  border-radius: 999px 999px 0 0;
+  background: var(--sky);
+  box-shadow:
+    0 0 0 0.6cqw var(--frame-c);
+}
+.bg::after {
+  /* 바닥 */
+  content: '';
+  position: absolute;
+  inset: 61% 0 0 0;
+  background: var(--floor);
+}
+.bg[data-id='day'] {
+  background: linear-gradient(180deg, #c9d6ee 0%, #a8b9dc 61%);
+  --sky: linear-gradient(180deg, #7fb0f0 0%, #cfe3fb 100%);
+  --frame-c: #eef1f8;
+  --floor: linear-gradient(180deg, #8d9cc0 0%, #5d6b92 100%);
+}
+.bg[data-id='evening'] {
+  background: linear-gradient(180deg, #6d5a86 0%, #4a3f68 61%);
+  --sky: linear-gradient(180deg, #4b4f9a 0%, #e48a6a 70%, #f7c37a 100%);
+  --frame-c: #3a2f52;
+  --floor: linear-gradient(180deg, #3e3558 0%, #241f38 100%);
+}
+.bg[data-id='night'] {
+  background: linear-gradient(180deg, #1a2350 0%, #121a3d 61%);
+  --sky: radial-gradient(circle at 70% 25%, #f4f1dc 0 3%, transparent 3.5%), linear-gradient(180deg, #0b1236 0%, #23306a 100%);
+  --frame-c: #0e1430;
+  --floor: linear-gradient(180deg, #121a3d 0%, #070a1a 100%);
+}
+
+/* ── 인물: 실루엣 ─────────────────────────── */
+#sprite-pos {
+  position: absolute;
+  left: 58%;
+  bottom: 0;
+  height: 82%;
+  aspect-ratio: 2 / 3;
+  transform: translate(-50%, 2.5%);
+  opacity: 0;
+  transition: opacity 420ms ease, transform 420ms ease;
+  pointer-events: none;
+}
+#sprite-pos.present {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+#sprite-shake {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+}
+#sprite-shake.shake { animation: shake 300ms ease-out; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+#sprite-shake svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 1.2cqw rgba(5, 10, 30, 0.35));
+}
+
+#shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(4, 6, 15, 0.25) 0%, transparent 18%, transparent 55%, rgba(4, 6, 15, 0.55) 100%);
+}
+
+/* ── 대사창 ───────────────────────────────── */
+#textbox {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  bottom: 4%;
+  min-height: 24%;
+  padding: calc(var(--fs) * 1.25) calc(var(--fs) * 1.6) calc(var(--fs) * 1.1);
+  background: linear-gradient(180deg, rgba(14, 22, 54, 0.82), rgba(6, 10, 28, 0.9));
+  border: 1px solid var(--gold-soft);
+  border-radius: calc(var(--fs) * 0.6);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 calc(var(--fs) * 0.6) calc(var(--fs) * 2) rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: opacity 300ms ease;
+}
+#textbox.hidden { opacity: 0; }
+
+#nametag {
+  position: absolute;
+  top: 0;
+  left: calc(var(--fs) * 1.3);
+  transform: translateY(-55%);
+  padding: calc(var(--fs) * 0.22) calc(var(--fs) * 1.1);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: calc(var(--fs) * 0.95);
+  letter-spacing: 0.08em;
+  color: #fff6df;
+  background: linear-gradient(90deg, #233a86, #3a5bb8);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+#nametag:empty { display: none; }
+#textbox[data-speaker='player'] #nametag {
+  background: linear-gradient(90deg, #2b2f45, #454b68);
+  border-color: rgba(201, 211, 242, 0.6);
+  color: var(--ink-soft);
+}
+
+#text {
+  margin: 0;
+  font-size: var(--fs);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+#textbox[data-speaker='narration'] #text {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+#next {
+  position: absolute;
+  right: calc(var(--fs) * 1.2);
+  bottom: calc(var(--fs) * 0.8);
+  width: 0;
+  height: 0;
+  border-left: calc(var(--fs) * 0.36) solid transparent;
+  border-right: calc(var(--fs) * 0.36) solid transparent;
+  border-top: calc(var(--fs) * 0.5) solid var(--gold);
+  opacity: 0;
+}
+#textbox.ready #next {
+  opacity: 1;
+  animation: bob 1s ease-in-out infinite;
+}
+#textbox.hidden #next { opacity: 0; animation: none; }
+@keyframes bob { 50% { transform: translateY(30%); } }
+
+/* ── 선택지 ───────────────────────────────── */
+#choices {
+  position: absolute;
+  inset: 0 0 30% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--fs) * 1);
+  background: radial-gradient(ellipse at 50% 55%, rgba(4, 8, 24, 0.55), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+  cursor: default;
+}
+#choices.on { opacity: 1; pointer-events: auto; }
+.choice {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--fs) * 0.8);
+  width: min(62%, 40em);
+  padding: calc(var(--fs) * 0.85) calc(var(--fs) * 1.4);
+  font: inherit;
+  font-size: var(--fs);
+  color: var(--ink);
+  text-align: left;
+  background: linear-gradient(90deg, rgba(12, 20, 52, 0.9), rgba(24, 40, 96, 0.85));
+  border: 1px solid var(--gold-soft);
+  border-radius: calc(var(--fs) * 0.5);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+.choice .num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.6em;
+  height: 1.6em;
+  font-size: 0.8em;
+  color: var(--gold);
+  border: 1px solid var(--gold-soft);
+  border-radius: 50%;
+}
+.choice:hover, .choice:focus-visible {
+  outline: none;
+  transform: translateX(4px);
+  border-color: var(--gold);
+  background: linear-gradient(90deg, rgba(24, 40, 100, 0.95), rgba(52, 84, 170, 0.9));
+}
+
+/* ── 끝 화면 ──────────────────────────────── */
+#titlecard {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--fs) * 0.9);
+  background: #04060f;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.4s ease;
+  cursor: default;
+  text-align: center;
+  padding: 0 6%;
+}
+#titlecard.on { opacity: 1; pointer-events: auto; }
+#titlecard .head {
+  font-family: var(--font-serif);
+  font-size: calc(var(--fs) * 1.2);
+  word-break: keep-all;
+}
+#titlecard .rule {
+  width: calc(var(--fs) * 6);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+#titlecard button, #title-screen .hint { margin-top: calc(var(--fs) * 1.6); }
+#titlecard button {
+  padding: calc(var(--fs) * 0.55) calc(var(--fs) * 1.6);
+  font: inherit;
+  font-size: calc(var(--fs) * 0.75);
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid rgba(201, 211, 242, 0.3);
+  border-radius: 999px;
+  cursor: pointer;
+}
+#titlecard button:hover, #titlecard button:focus-visible {
+  border-color: var(--ink-soft);
+  background: rgba(201, 211, 242, 0.08);
+  outline: none;
+}
+
+/* ── 타이틀 화면 ──────────────────────────── */
+#title-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(4, 8, 24, 0.35), rgba(4, 8, 24, 0.75));
+  transition: opacity 900ms ease;
+}
+#title-screen.off { opacity: 0; pointer-events: none; }
+#title-screen h1 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: min(calc(var(--fs) * 2.6), 6.5cqw);
+  white-space: nowrap;
+  font-weight: 700;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+}
+#title-screen .hint {
+  font-size: calc(var(--fs) * 0.9);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: 0.45; } }
+
+/* ── 대사 로그 ────────────────────────────── */
+#backlog {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  padding: 4% 12% 3%;
+  background: rgba(4, 7, 20, 0.95);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  cursor: default;
+}
+#backlog.on { opacity: 1; pointer-events: auto; }
+.log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: calc(var(--fs) * 0.6);
+  border-bottom: 1px solid var(--gold-soft);
+  font: 700 calc(var(--fs) * 0.9) var(--font-serif);
+  letter-spacing: 0.3em;
+  color: var(--gold);
+}
+#log-close {
+  padding: 6px 16px;
+  font: 600 calc(var(--fs) * 0.6) var(--font-sans);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--gold-soft);
+  border-radius: 999px;
+  cursor: pointer;
+}
+#log-close:hover { border-color: var(--gold); }
+#log-list {
+  flex: 1;
+  margin: 0;
+  padding: calc(var(--fs) * 0.8) calc(var(--fs) * 0.4) 0 0;
+  list-style: none;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-soft) transparent;
+  user-select: text;
+}
+#log-list li {
+  padding: calc(var(--fs) * 0.55) 0;
+  border-bottom: 1px solid rgba(201, 211, 242, 0.07);
+}
+#log-list .name {
+  margin-bottom: 2px;
+  font: 700 calc(var(--fs) * 0.62) var(--font-serif);
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+#log-list li[data-speaker='player'] .name { color: var(--ink-soft); }
+#log-list p {
+  margin: 0;
+  font-size: calc(var(--fs) * 0.8);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+#log-list li[data-speaker='narration'] p { color: var(--ink-soft); font-style: italic; }
+#log-list li.picked { font-size: calc(var(--fs) * 0.72); color: var(--azure); }
+#log-list li.picked::before { content: '▸ 선택  '; color: var(--gold); }
+
+/* ── 오른쪽 위 버튼 ───────────────────────── */
+#controls {
+  position: absolute;
+  top: 2.5%;
+  right: 1.8%;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  cursor: default;
+  z-index: 10;
+}
+#controls > button {
+  display: grid;
+  place-items: center;
+  width: clamp(32px, 2.8cqw, 48px);
+  height: clamp(32px, 2.8cqw, 48px);
+  padding: 0;
+  background: var(--panel);
+  border: 1px solid var(--gold-soft);
+  border-radius: 50%;
+  cursor: pointer;
+}
+#controls > button[hidden] { display: none; }
+#controls > button:hover { border-color: var(--gold); }
+#controls > button.pill {
+  display: flex;
+  width: auto;
+  padding: 0 clamp(10px, 1cqw, 16px);
+  border-radius: 999px;
+  font: 600 clamp(11px, 0.85cqw, 14px) var(--font-sans);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+#controls svg {
+  width: 58%;
+  height: 58%;
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+#mute .off, #mute.muted .on { display: none; }
+#mute.muted .off { display: block; }
+#fullscreen .off, #fullscreen.active .on { display: none; }
+#fullscreen.active .off { display: block; }
+
+/* ── 세로 화면(폰): 장면 위, 대사창 아래 ─── */
+@media (max-aspect-ratio: 1 / 1) {
+  #frame {
+    width: 100vw;
+    height: 100dvh;
+    aspect-ratio: auto;
+    display: flex;
+    flex-direction: column;
+    --fs: clamp(15px, 4.2cqw, 22px);
+  }
+  #scene { position: relative; flex: 1; }
+  .bg::before { width: 70%; }
+  #sprite-pos { left: 50%; }
+  #textbox {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    min-height: 27dvh;
+    margin: 0;
+    border-radius: 0;
+    border-width: 1px 0 0;
+    padding-top: calc(var(--fs) * 1.6);
+    padding-bottom: calc(var(--fs) * 1.2 + env(safe-area-inset-bottom));
+  }
+  #textbox.hidden { opacity: 1; }
+  #textbox.hidden > * { opacity: 0; }
+  #choices { inset: 0 0 27dvh 0; }
+  .choice { width: 88%; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="frame">
+    <div id="scene">
+      <div class="bg" id="bg-a"></div>
+      <div class="bg" id="bg-b"></div>
+      <div id="sprite-pos">
+        <div id="sprite-shake">
+          <svg viewBox="0 0 200 300" aria-hidden="true">
+            <defs>
+              <linearGradient id="sil" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#1b2550" />
+                <stop offset="1" stop-color="#0b1130" />
+              </linearGradient>
+              <g id="body">
+                <path d="M18 300 C18 232 46 200 100 196 C154 200 182 232 182 300 Z" />
+                <path d="M86 160 L86 200 L114 200 L114 160 Z" />
+                <ellipse cx="100" cy="130" rx="40" ry="46" />
+              </g>
+            </defs>
+            <!-- 테두리를 두껍게 깐 뒤 같은 모양으로 덮어 바깥 테두리만 남긴다 -->
+            <use href="#body" fill="none" stroke="rgba(217,184,113,0.5)" stroke-width="3" />
+            <use href="#body" fill="url(#sil)" />
+          </svg>
+        </div>
+      </div>
+      <div id="shade"></div>
+    </div>
+
+    <div id="textbox" class="hidden" data-speaker="narration">
+      <div id="nametag"></div>
+      <p id="text"></p>
+      <div id="next" aria-hidden="true"></div>
+    </div>
+
+    <div id="choices" inert></div>
+
+    <div id="backlog" role="dialog" aria-label="대사 로그" inert>
+      <div class="log-head">
+        <span>LOG</span>
+        <button type="button" id="log-close">닫기</button>
+      </div>
+      <ol id="log-list"></ol>
+    </div>
+
+    <div id="titlecard" inert>
+      <div class="head">끝</div>
+      <div class="rule"></div>
+      <button type="button">처음부터 다시</button>
+    </div>
+
+    <div id="title-screen">
+      <h1>비주얼노벨</h1>
+      <div class="hint">클릭하면 시작</div>
+    </div>
+
+    <div id="controls">
+      <button type="button" id="log" class="pill" aria-expanded="false" aria-controls="backlog" title="대사 로그">LOG</button>
+      <button type="button" id="mute" aria-label="음소거" aria-pressed="false" title="음소거">
+        <svg class="on" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" /></svg>
+        <svg class="off" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M17 9.5l5 5M22 9.5l-5 5" fill="none" /></svg>
+      </button>
+      <button type="button" id="fullscreen" aria-label="전체 화면" title="전체 화면" hidden>
+        <svg class="on" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" /></svg>
+        <svg class="off" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" /></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 대사 데이터: 화면 틀이 어떻게 움직이는지 보여 주는 짧은 장면
+var NAMES = { friend: '친구', player: '나', narration: '' };
+
+var SCRIPT = {
+  start: [
+    { bg: 'evening', fade: 1.2 },
+    { say: 'narration', text: '해가 지는 거실. 창밖이 주황색으로 물들어 있다.' },
+    { sprite: true },
+    { say: 'friend', text: '왔어? 생각보다 늦었네.' },
+    { say: 'player', text: '미안, 길이 좀 막혔어.' },
+    { say: 'friend', text: '괜찮아. 뭐 마실래?' },
+    { choice: [
+      { text: '따뜻한 차', next: 'tea' },
+      { text: '시원한 물', next: 'water' },
+    ] },
+  ],
+  tea: [
+    { say: 'friend', text: '차? 좋아, 금방 끓일게.' },
+    { goto: 'night' },
+  ],
+  water: [
+    { say: 'friend', text: '물이면 냉장고에 있어. 알아서 꺼내 마셔.' },
+    { goto: 'night' },
+  ],
+  night: [
+    { sprite: false },
+    { bg: 'night', fade: 1.6 },
+    { say: 'narration', text: '이야기를 나누다 보니 어느새 밤이 되었다.' },
+    { sprite: true },
+    { shake: true },
+    { say: 'friend', text: '벌써 이렇게 됐어?!' },
+    { say: 'player', text: '시간 진짜 빠르다.' },
+    { say: 'friend', text: '조심히 들어가. 다음에 또 와.' },
+    { end: true },
+  ],
+};
+
+var TEXT_MS = 34;
+var SPRITE_ENTER_MS = 420;
+
+function $(sel) { return document.querySelector(sel); }
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+// ── 소리: 짧은 효과음만 합성한다 ────────────────
+var audio = {
+  ctx: null,
+  muted: false,
+  unlock: function () {
+    if (this.ctx) return;
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    try { this.ctx = new Ctx(); } catch (e) { this.ctx = null; }
+  },
+  blip: function (freq, dur, vol, type) {
+    var ctx = this.ctx;
+    if (!ctx || this.muted) return;
+    var t = ctx.currentTime;
+    var o = ctx.createOscillator();
+    var g = ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(ctx.destination);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  },
+  advance: function () { this.blip(1320, 0.06, 0.05, 'triangle'); },
+  click: function () { this.blip(880, 0.05, 0.06, 'triangle'); },
+  select: function () {
+    this.blip(988, 0.12, 0.07, 'sine');
+    var self = this;
+    setTimeout(function () { self.blip(1480, 0.18, 0.06, 'sine'); }, 70);
+  },
+};
+
+// ── 화면 ─────────────────────────────────────
+var frame = $('#frame');
+var bgs = [$('#bg-a'), $('#bg-b')];
+var bgFront = 0;
+var bgCurrent = null;
+var spritePos = $('#sprite-pos');
+var spriteShake = $('#sprite-shake');
+var textbox = $('#textbox');
+var nametag = $('#nametag');
+var textEl = $('#text');
+var choicesEl = $('#choices');
+var titlecard = $('#titlecard');
+var titleScreen = $('#title-screen');
+var spriteOn = false;
+
+function setBg(id, seconds) {
+  if (id === bgCurrent) return Promise.resolve();
+  bgCurrent = id;
+  var incoming = bgs[1 - bgFront];
+  var outgoing = bgs[bgFront];
+  incoming.dataset.id = id;
+  incoming.style.transitionDuration = outgoing.style.transitionDuration = seconds * 1000 + 'ms';
+  void incoming.offsetWidth;
+  incoming.classList.add('on');
+  outgoing.classList.remove('on');
+  bgFront = 1 - bgFront;
+  return sleep(seconds * 1000);
+}
+
+function setSprite(on) {
+  if (on === spriteOn) return Promise.resolve();
+  spriteOn = on;
+  spritePos.classList.toggle('present', on);
+  return sleep(SPRITE_ENTER_MS);
+}
+
+function shake() {
+  spriteShake.classList.remove('shake');
+  void spriteShake.offsetWidth;
+  spriteShake.classList.add('shake');
+}
+
+function showTextbox(on) { textbox.classList.toggle('hidden', !on); }
+
+var typing = null;
+
+function typeText(speaker, full) {
+  finishTyping();
+  showTextbox(true);
+  textbox.dataset.speaker = speaker;
+  nametag.textContent = NAMES[speaker];
+  textbox.classList.remove('ready');
+  var chars = Array.from(full);
+  function pauseAfter(c) { return '.!?…—'.indexOf(c) >= 0 ? 5 : c === ',' ? 2.5 : 1; }
+  var shown = 0;
+  var budget = 0;
+  var last = performance.now();
+  var t = { raf: 0, done: null };
+  t.done = function () {
+    if (typing !== t) return;
+    cancelAnimationFrame(t.raf);
+    typing = null;
+    textEl.textContent = full;
+    textbox.classList.add('ready');
+  };
+  function tick(now) {
+    budget += now - last;
+    last = now;
+    while (shown < chars.length) {
+      var cost = TEXT_MS * (shown > 0 ? pauseAfter(chars[shown - 1]) : 1);
+      if (budget < cost) break;
+      budget -= cost;
+      shown++;
+    }
+    textEl.textContent = chars.slice(0, shown).join('');
+    if (shown >= chars.length) t.done();
+    else if (typing === t) t.raf = requestAnimationFrame(tick);
+  }
+  typing = t;
+  textEl.textContent = '';
+  t.raf = requestAnimationFrame(tick);
+}
+
+function finishTyping() { if (typing) typing.done(); }
+
+function clearText() {
+  finishTyping();
+  textEl.textContent = '';
+  nametag.textContent = '';
+  textbox.classList.remove('ready');
+  textbox.dataset.speaker = 'narration';
+}
+
+function showChoices(labels) {
+  textbox.classList.remove('ready');
+  choicesEl.replaceChildren();
+  return new Promise(function (resolve) {
+    function pick(i) {
+      window.removeEventListener('keydown', onKey);
+      choicesEl.classList.remove('on');
+      choicesEl.inert = true;
+      resolve(i);
+    }
+    function onKey(e) {
+      if (frame.classList.contains('log-open')) return;
+      var n = Number(e.key);
+      if (n >= 1 && n <= labels.length) {
+        e.preventDefault();
+        pick(n - 1);
+      }
+    }
+    labels.forEach(function (label, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'choice';
+      b.innerHTML = '<span class="num">' + (i + 1) + '</span><span class="label"></span>';
+      b.querySelector('.label').textContent = label;
+      b.addEventListener('pointerenter', function (e) {
+        if (e.pointerType === 'mouse') audio.click();
+      });
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        pick(i);
+      });
+      choicesEl.append(b);
+    });
+    choicesEl.inert = false;
+    void choicesEl.offsetWidth;
+    choicesEl.classList.add('on');
+    window.addEventListener('keydown', onKey);
+  });
+}
+
+function showTitleCard() {
+  titlecard.inert = false;
+  titlecard.classList.add('on');
+  var btn = titlecard.querySelector('button');
+  return new Promise(function (resolve) {
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      resolve();
+    };
+  });
+}
+
+// ── 대사 로그 ────────────────────────────────
+var backlog = $('#backlog');
+var logList = $('#log-list');
+
+function logLine(speaker, text) {
+  var li = document.createElement('li');
+  li.dataset.speaker = speaker;
+  if (NAMES[speaker]) {
+    var name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = NAMES[speaker];
+    li.append(name);
+  }
+  var p = document.createElement('p');
+  p.textContent = text;
+  li.append(p);
+  logList.append(li);
+}
+
+function logChoice(text) {
+  var li = document.createElement('li');
+  li.className = 'picked';
+  li.textContent = text;
+  logList.append(li);
+}
+
+function logOpen() { return backlog.classList.contains('on'); }
+
+// ── 진행 ─────────────────────────────────────
+var mode = 'title';
+var advanceResolver = null;
+
+function waitAdvance() { return new Promise(function (r) { advanceResolver = r; }); }
+
+async function run(label) {
+  var current = label;
+  while (current) {
+    var steps = SCRIPT[current];
+    current = null;
+    for (var i = 0; i < steps.length; i++) {
+      var jump = await exec(steps[i]);
+      if (jump) { current = jump; break; }
+    }
+  }
+}
+
+async function exec(s) {
+  if (s.say) {
+    mode = 'say';
+    logLine(s.say, s.text);
+    typeText(s.say, s.text);
+    await waitAdvance();
+    mode = 'busy';
+  } else if (s.bg) {
+    clearText();
+    showTextbox(false);
+    await setBg(s.bg, s.fade);
+  } else if ('sprite' in s) {
+    await setSprite(s.sprite);
+  } else if (s.shake) {
+    shake();
+  } else if (s.choice) {
+    mode = 'choice';
+    var i = await showChoices(s.choice.map(function (o) { return o.text; }));
+    audio.select();
+    logChoice(s.choice[i].text);
+    mode = 'busy';
+    return s.choice[i].next;
+  } else if (s.goto) {
+    return s.goto;
+  } else if (s.end) {
+    mode = 'end';
+    clearText();
+    showTextbox(false);
+    await showTitleCard();
+    audio.select();
+    titlecard.classList.remove('on');
+    titlecard.inert = true;
+    await setSprite(false);
+    logList.replaceChildren();
+    mode = 'busy';
+    return 'start';
+  }
+}
+
+function start() {
+  audio.unlock();
+  audio.select();
+  titleScreen.classList.add('off');
+  titleScreen.inert = true;
+  mode = 'busy';
+  run('start');
+}
+
+function onAdvance() {
+  if (mode === 'title') return start();
+  if (mode !== 'say') return;
+  if (typing) return finishTyping();
+  audio.advance();
+  var r = advanceResolver;
+  advanceResolver = null;
+  if (r) r();
+}
+
+frame.addEventListener('click', function (e) {
+  if (e.target.closest('#controls, #choices, #titlecard, #backlog')) return;
+  onAdvance();
+});
+
+window.addEventListener('keydown', function (e) {
+  if (logOpen()) {
+    if (e.key === 'Escape') toggleLog();
+    if (e.key === ' ' || e.key === 'Enter') e.preventDefault();
+    return;
+  }
+  if (e.key !== ' ' && e.key !== 'Enter') return;
+  if (mode === 'title') return;
+  if (e.target.closest && e.target.closest('input, button')) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  onAdvance();
+});
+
+// ── 로그 버튼 ────────────────────────────────
+var logBtn = $('#log');
+
+function toggleLog() {
+  var open = !logOpen();
+  backlog.classList.toggle('on', open);
+  backlog.inert = !open;
+  if (open) logList.scrollTop = logList.scrollHeight;
+  frame.classList.toggle('log-open', open);
+  logBtn.setAttribute('aria-expanded', String(open));
+  audio.click();
+}
+logBtn.addEventListener('click', function () {
+  if (mode !== 'title') toggleLog();
+  logBtn.blur();
+});
+$('#log-close').addEventListener('click', toggleLog);
+
+// ── 음소거 ───────────────────────────────────
+var muteBtn = $('#mute');
+muteBtn.addEventListener('click', function () {
+  audio.muted = !audio.muted;
+  muteBtn.classList.toggle('muted', audio.muted);
+  muteBtn.setAttribute('aria-pressed', String(audio.muted));
+  muteBtn.blur();
+});
+
+// ── 전체 화면 (지원하지 않는 브라우저에선 숨김) ──
+var fsBtn = $('#fullscreen');
+if (document.fullscreenEnabled) {
+  fsBtn.hidden = false;
+  fsBtn.addEventListener('click', function () {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+    } else {
+      document.documentElement.requestFullscreen().then(function () {
+        var o = screen.orientation;
+        if (o && o.lock) o.lock('landscape').catch(function () {});
+      }).catch(function () {});
+    }
+    fsBtn.blur();
+  });
+  document.addEventListener('fullscreenchange', function () {
+    var on = !!document.fullscreenElement;
+    fsBtn.classList.toggle('active', on);
+    fsBtn.setAttribute('aria-label', on ? '전체 화면 끝내기' : '전체 화면');
+    fsBtn.title = on ? '전체 화면 끝내기' : '전체 화면';
+  });
+}
+
+setBg('day', 0);
+</script>
+</body>
+</html>

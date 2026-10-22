@@ -45,21 +45,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `etc/`: 중요하지 않은 옛 페이지를 모아 둔 폴더(2026-10-21 사용자 결정: "중요하지 않은 싸이월드, 후니랩은 다른 폴더에 집어넣자"). 메인 홈페이지에서는 링크하지 않는다.
   - `etc/hooni-lab.html`: HOONI LAB 커뮤니티 페이지(처음엔 루트 `index.html`이었다). 브랜드 컬러의 출처다.
   - `etc/cyworld.html`: 2000년대 미니홈피 스타일 페이지. 두 페이지는 서로를 가리킨다.
+  - `etc/vn.html`: 비주얼노벨 화면 틀(대사창, 이름표, 선택지, LOG, 음소거, 전체 화면, 배경 전환). 그림과 음악 없이 CSS 배경, 실루엣 인물, 합성 효과음, 짧은 예시 대사만 넣었다. 다른 작품의 그림, 이름, 대사는 넣지 않는다(2026-10-22 사용자 결정).
 - 사용자가 준 그림은 프로젝트 루트에 들어올 때가 많다. 캐릭터나 그림이 필요하면 먼저 루트와 폴더에서 새 그림 파일부터 찾는다.
-- `furina/`: 별도 Vite + TypeScript 프로젝트(푸리나 비주얼노벨, 2026-10-21 사용자 요청으로 `furina_vn_pack`에서 이름을 바꿨다). 게임 모음과는 관계없다. `npm install` 후 `npm run dev` / `npm run build`.
-  - 원본(`src/*.ts`)은 브라우저가 바로 실행하지 못하므로, 빌드 결과를 `furina/play/`에 만들어 저장소에 함께 올린다(2026-10-22 사용자 결정). GitHub Pages에서는 `…/tutorial-games/furina/play/`로 연다. **푸리나를 고치면 `npm run build`로 `play/`를 다시 만들어 같이 커밋한다.**
 
 ## 깃허브
 
 - 이 폴더 전체가 깃 저장소이고 `https://github.com/last-child/tutorial-games`(브랜치 `main`)에 올린다. GitHub Pages가 켜져 있어서 `main`에 올리면 `https://last-child.github.io/tutorial-games/`에 바로 나온다. 2026-10-21 사용자 요청으로 처음 올렸고, 같은 날 사용자가 저장소를 지우고 새로 만들어 다시 올렸다(예전 커밋 기록은 없다).
 - **커밋 메시지 (2026-10-21 사용자 결정):** Conventional Commits를 따른다. 제목은 `타입: 영어 요약`(타입은 `feat`, `fix`, `docs`, `refactor`, `style`, `chore` 등), 본문은 한국어로 무엇이 바뀌었는지 목록으로 쓴다. 예: `feat: add daruma obstacle to fox runner`.
-- 받은 그림 압축 파일(`fox/img/*.zip`)은 안의 그림을 풀어 두었으므로 올리지 않는다(사용자 결정). impeccable 임시 파일과 `node_modules/`, `dist/`도 `.gitignore`로 뺀다. 푸리나 비주얼노벨도 함께 올린다.
+- 받은 그림 압축 파일(`fox/img/*.zip`)은 안의 그림을 풀어 두었으므로 올리지 않는다(사용자 결정). impeccable 임시 파일도 `.gitignore`로 뺀다.
 - 커밋과 푸시는 사용자가 하라고 할 때만 한다.
 
 ## 파이어베이스 호스팅
 
 - 2026-10-21 사용자가 파이어베이스 프로젝트 `hooni-tutorial-games`를 만들어 이 폴더와 연동했다(`.firebaserc`, `firebase.json`). 주소는 `https://hooni-tutorial-games.web.app`이다. GitHub Pages와 같은 사이트를 따로 하나 더 올리는 것이다.
-- 저장소 맨 위를 그대로 올린다(`public: "."`). 문서(`*.md`), 숨김 파일, `furina/`(빌드가 필요한 별도 프로젝트), 여우 원본 그림(`fox/img/*.zip`, `fox/img/**/*.png`)은 올리지 않는다.
+- 저장소 맨 위를 그대로 올린다(`public: "."`). 문서(`*.md`), 숨김 파일, 여우 원본 그림(`fox/img/*.zip`, `fox/img/**/*.png`)은 올리지 않는다.
 - 배포는 `firebase deploy --only hosting`. 깃 푸시처럼 사용자가 하라고 할 때만 한다.
 
 ## 새 게임을 만들 때

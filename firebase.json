@@ -6,7 +6,6 @@
       "**/.*",
       "**/node_modules/**",
       "**/*.md",
-      "furina/**",
       "fox/img/*.zip",
       "fox/img/**/*.png"
     ]
