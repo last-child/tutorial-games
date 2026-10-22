@@ -20,7 +20,7 @@
 
   브라우저에서 열기: http://localhost:4173/
   ※ 대본을 고치지 않았다면 npm run build 는 생략해도 됨.
-  ※ dist\index.html 을 더블클릭해서 열면 스크립트·오디오가 막힐 수 있으니 이 방법을 쓸 것.
+  ※ play\index.html 을 더블클릭해서 열면 스크립트·오디오가 막힐 수 있으니 이 방법을 쓸 것.
 
 
 [3] Claude Code로 작업 이어가기

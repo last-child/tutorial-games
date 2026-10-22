@@ -47,6 +47,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `etc/cyworld.html`: 2000년대 미니홈피 스타일 페이지. 두 페이지는 서로를 가리킨다.
 - 사용자가 준 그림은 프로젝트 루트에 들어올 때가 많다. 캐릭터나 그림이 필요하면 먼저 루트와 폴더에서 새 그림 파일부터 찾는다.
 - `furina/`: 별도 Vite + TypeScript 프로젝트(푸리나 비주얼노벨, 2026-10-21 사용자 요청으로 `furina_vn_pack`에서 이름을 바꿨다). 게임 모음과는 관계없다. `npm install` 후 `npm run dev` / `npm run build`.
+  - 원본(`src/*.ts`)은 브라우저가 바로 실행하지 못하므로, 빌드 결과를 `furina/play/`에 만들어 저장소에 함께 올린다(2026-10-22 사용자 결정). GitHub Pages에서는 `…/tutorial-games/furina/play/`로 연다. **푸리나를 고치면 `npm run build`로 `play/`를 다시 만들어 같이 커밋한다.**
 
 ## 깃허브
 
